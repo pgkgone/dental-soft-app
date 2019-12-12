@@ -62,7 +62,8 @@ export class Login extends React.Component {
               </Item>
               <Item floatingLabel>
                 <Label>Password</Label>
-                <Input value={this.state.password} secureTextEntry />
+                <Input value={this.state.password} secureTextEntry
+                 onChangeText={v => this.setState({ password: v })} />
               </Item>
               <Button
                 transparent
