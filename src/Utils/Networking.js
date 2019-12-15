@@ -8,8 +8,13 @@ class Network {
     var __xmlattr = "<tokenId>" + token + "</tokenId><docId>" + id + "</docId>";
     return new Promise(resolve => {
       soap.createClient(this.url, function(err, client) {
+        if(err!=null) throw "Create Client Error!"
         client.GetDates({ _xml: __xmlattr }, function(err, result) {
-          resolve(result);
+          if (err == null) {
+            resolve(result);
+          } else{
+            throw "Network Error!"
+          }
         });
       });
     });
@@ -19,8 +24,13 @@ class Network {
     var __xmlattr = "<tokenId>" + token + "</tokenId><docId>" + id + "</docId>";
     return new Promise(resolve => {
       soap.createClient(this.url, function(err, client) {
+        if(err!=null) throw "Create Client Error!"
         client.GetDocs({ _xml: __xmlattr }, function(err, result) {
-          resolve(result);
+          if (err == null) {
+            resolve(result);
+          } else{
+            throw "Network Error!"
+          }
         });
       });
     });
@@ -37,8 +47,13 @@ class Network {
       "</datez>";
     return new Promise(resolve => {
       soap.createClient(this.url, function(err, client) {
+        if(err!=null) throw "Create Client Error!"
         client.GetTimes({ _xml: __xmlattr }, function(err, result) {
-          resolve(result);
+          if (err == null) {
+            resolve(result);
+          } else{
+            throw "Network Error!"
+          }
         });
       });
     });
@@ -55,8 +70,13 @@ class Network {
       "</datez>";
     return new Promise(resolve => {
       soap.createClient(this.url, function(err, client) {
+        if(err!=null) throw "Create Client Error!"
         client.GetDatesAll({ _xml: __xmlattr }, function(err, result) {
-          resolve(result);
+          if (err == null) {
+            resolve(result);
+          } else{
+            throw "Network Error!"
+          }
         });
       });
     });
@@ -66,8 +86,13 @@ class Network {
     var __xmlattr = "<tokenId>" + token + "</tokenId><docId>" + id + "</docId>";
     return new Promise(resolve => {
       soap.createClient(this.url, function(err, client) {
+        if(err!=null) throw "Create Client Error!"
         client.GetFio({ _xml: __xmlattr }, function(err, result) {
-          resolve(result);
+          if (err == null) {
+            resolve(result);
+          } else{
+            throw "Network Error!"
+          }
         });
       });
     });
@@ -96,8 +121,13 @@ class Network {
       "</email>";
     return new Promise(resolve => {
       soap.createClient(this.url, function(err, client) {
+        if(err!=null) throw "Create Client Error!"
         client.Reserv({ _xml: __xmlattr }, function(err, result) {
-          resolve(result);
+          if (err == null) {
+            resolve(result);
+          } else{
+            throw "Network Error!"
+          }
         });
       });
     });
@@ -131,8 +161,13 @@ class Network {
       "</pol>";
     return new Promise(resolve => {
       soap.createClient(this.url, function(err, client) {
+        if(err!=null) throw "Create Client Error!"
         client.Reserv2({ _xml: __xmlattr }, function(err, result) {
-          resolve(result);
+          if (err == null) {
+            resolve(result);
+          } else{
+            throw "Network Error!"
+          }
         });
       });
     });
