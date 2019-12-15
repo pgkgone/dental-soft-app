@@ -23,7 +23,8 @@
     "soap": "^0.30.0",
     "soap-everywhere": "^1.0.7",
     "expo-secure-store": "~8.0.0",
-    "expo-font": "~8.0.0"
+    "expo-font": "~8.0.0",
+    "expo-local-authentication": "~8.0.0"
   },
   "devDependencies": {
     "babel-preset-expo": "~8.0.0"
