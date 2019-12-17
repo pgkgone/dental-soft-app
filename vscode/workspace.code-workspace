@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "C:\\dental-app"
+		}
+	],
+	"settings": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode",
+  		"[javascript]": {
+    		"editor.defaultFormatter": "esbenp.prettier-vscode"
+  		}
+	}
+}

@@ -1,17 +1,13 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import {Main} from './src/Main'
-export default function App() {
-  return (
-      <Main/>
-  );
-}
+import {StyleSheet} from 'react-native';
+import Login from './src/Login'
+import {createAppContainer} from 'react-navigation';
+import {createStackNavigator} from 'react-navigation-stack';
+import AdminTimeTableNav from './src/Navigation/AdminTimeTableNav'
+import { View } from 'native-base';
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+export default function App() {
+return (
+    <AdminTimeTableNav />
+);
+}

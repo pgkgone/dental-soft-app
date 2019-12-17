@@ -25,6 +25,14 @@
     ],
     "ios": {
       "supportsTablet": true
+    },
+    "androidStatusBarColor": "#a52b2a",
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#a52b2a"
+    },
+    "android": {
+      "package": "com.dentalsoft.dentalapp"
     }
   }
 }

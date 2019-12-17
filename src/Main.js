@@ -1,23 +1,46 @@
 import React from "react";
 import { Text, View, FlatList,StyleSheet } from "react-native";
-import {DoctorTimeTable} from './Components/DoctorTimeTable'
+import {AdminTimeTable} from "./Components/AdminTimeTable"
 export class Main extends React.Component {
   data =  {
-    dates : [{
       date : '11.12.1212',
       cells : [{
-        visitNum : 'Первое посещение 11 12',
-        name : 'Иван Иванов',
-        time : '11:00',
+        name : 'Сидоров Сидор Сидорович',
+        doctorId : '1',
+      },
+      {
+        name : 'Сорокин Илья Петрович',
+        doctorId : '2',
+      },{
+        name : 'Сидоров Сидор Сидорович',
+        doctorId : '3',
+      },
+      {
+        name : 'Сорокин Илья Петрович',
+        doctorId : '11',
+      },{
+        name : 'Сидоров Сидор Сидорович',
+        doctorId : '12',
+      },
+      {
+        name : 'Сорокин Илья Петрович',
+        doctorId : '13',
+      },
+      {
+        name : 'Сидоров Сидор Сидорович',
+        doctorId : '16',
+      },
+      {
+        name : 'Сорокин Илья Петрович',
+        doctorId : '17',
+      },{
+        name : 'Сидоров Сидор Сидорович',
+        doctorId : '18',
       }
     ]  
-  }
-]
 }
     render() {
-      return (
-        <DoctorTimeTable data={this.data} />
-      );
+      return(this.props.navigation.navigate("AdminTimeTable", {data : this.data}));
     }
 }
 
