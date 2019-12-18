@@ -11,7 +11,7 @@ import { Container, Header, Body } from "native-base";
 import DateTimePicker from "react-native-modal-datetime-picker";
 import Icon2 from "react-native-vector-icons/FontAwesome";
 import * as Font from "expo-font";
-
+import Network from '../Utils/Networking'
 /*
 
     формат данных для вывода
@@ -43,24 +43,26 @@ import * as Font from "expo-font";
   */
 
 export class AdminTimeTable extends React.Component {
+
   constructor(props) {
     super(props);
-    this.data = this.props.navigation.state.params.data; //тут должен быть вызван initialApiCall(currentDate)
-    this.listOfCells = this.TableFormatter(); 
   }
+
   //устанавливаем stacknavigation header
   static navigationOptions = ({ navigation }) => {
     return {
       header: null
     };
   };
-
+  state={
+    listOfCells:null
+  }
   /*
         Сортирует врачей в алфавитном порядке 
     */
 
   TableFormatter() {
-    return this.data.cells.sort(function(a, b) {
+    return this.data.sort(function(a, b) {
       if (a.name < b.name) {
         return -1;
       }
@@ -77,22 +79,25 @@ export class AdminTimeTable extends React.Component {
     */
   dateChangedApiCall(date) { 
     console.log("Дата поменялась нужно вызвать Api " + date);
+    this.initialApiCall(date.slice(0, 10).replace(/-/g, "-"))
   }
 
   /*
       должен вызываться в конструкторе и возвращать this.props.data
     */
-
-  initialApiCall(date) {
-
+   async initialApiCall(date) {
+    var response =await Network.GetDocsAll("555",date)
+    this.data = response.rows.row.map((item) => {data={doctorId:item.id, name:item.name};return data})
+    this.setState({listOfCells:this.TableFormatter()})  
   }
-
 
 
   async componentDidMount() {
     await Font.loadAsync({
       Roboto_medium: require("native-base/Fonts/Roboto_medium.ttf")
     });
+    console.log("test")
+    await this.initialApiCall("2019-12-18")
     this.setState({ loading: false });
   }
   render() {
@@ -118,7 +123,7 @@ export class AdminTimeTable extends React.Component {
         </Header>
         <View style={styles.container}>
           <FlatList
-            data={this.listOfCells}
+            data={this.state.listOfCells}
             keyExtractor={item => item.doctorId}
             numColumns={1}
             style={{
@@ -131,7 +136,7 @@ export class AdminTimeTable extends React.Component {
                 data: {
                   name: item.name,
                   doctorId: item.doctorId,
-                  date: this.data.date
+                  date: this.date
                 }
               };
               return (
