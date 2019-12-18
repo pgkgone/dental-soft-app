@@ -9,9 +9,9 @@ import {
   Modal,
   TextInput
 } from "react-native";
-import { EditTable} from "../Components/EditTable"
+import { EditTable } from "../Components/EditTable";
 import { Button } from "native-base";
-
+import Network from "../Utils/Networking";
 /*
 
     входные параметры 
@@ -51,27 +51,23 @@ import { Button } from "native-base";
   */
 
 export class AdminDoctorTimeTable extends React.Component {
-  state = {
-    showEditTable: false
-  };
-
   constructor(props) {
     super(props);
-    //this.listOfCells = initialAPICall()
-    this.listOfCells = [{
-      visitNum : "Первое посещение",
-      time : '11:30',
-      doctorId : '505',
-      date : 2019-12-12,
-      prim : 'asdfsdf',
-    },
-    {
-      visitNum : "Первое посещение",
-      time : '12:00',
-      doctorId : '505',
-      date : 2019-12-12,
-      prim : 'asda',
-    }]
+  }
+
+  state = {
+    showEditTable: false,
+    date: this.props.navigation.state.params.data.date
+      .slice(0, 10)
+      .replace(/-/g, "-"),
+    doctorId: this.props.navigation.state.params.data.doctorId,
+    listOfCells: null,
+    loading: true
+  };
+
+  async componentDidMount() {
+    await this.initialApiCall();
+    this.setState({ loading: false });
   }
 
   static navigationOptions = ({ navigation }) => {
@@ -91,58 +87,108 @@ export class AdminDoctorTimeTable extends React.Component {
   }
 
   //эта функция вызывается после нажатия на кнопку сохранить
-  saveChanges(data) {
+  async saveChanges(data) {
+    console.log(data)
+    Network.EditGrvData("555",data.doctorId, data.date,data.time,data.mk,data.prim,data.nvr,data.kab)
+    console.log("cyka")
     this.setState({ showEditTable: false });
-    console.log(data);
+    this.initialApiCall()
   }
-  
-  initialAPICall(){
 
+  async initialApiCall() {
+    var response = await Network.GetTimesAll(
+      "555",
+      this.state.doctorId,
+      this.state.date
+    );
+    console.log(response);
+    this.data = response.rows.row.map(item => {
+      var p = null;
+      if (Object.entries(item.id).length === 0) {
+        p = {
+          visitNum: "",
+          time: item.name,
+          doctorId: this.state.doctorId,
+          date: this.state.date,
+          prim: ""
+        };
+      } else {
+        p = {
+          visitNum: item.id.split(",")[1],
+          time: item.name,
+          doctorId: this.state.doctorId,
+          date: this.state.date,
+          prim: item.id.split(", ")[0]
+        };
+      }
+      return p;
+    });
+    this.setState({ listOfCells: this.data });
   }
   showEditTable(newState) {
     this.setState(newState);
   }
+
+
   drawEditTable() {
-    dataToTable = this.state.modalData //тут нужно вызвать Api
-    if (this.state.showEditTable === true) {
-      return (
-        <EditTable
-          closeFun={(data) => this.saveChanges(data)}
-          data = {dataToTable}
-        />
-      );
+    if(this.state.modalData === undefined){
+      console.log("a")
+    } else{
+      if (this.state.showEditTable === true) {
+        return (
+          <EditTable
+            closeFun={(data) => this.saveChanges(data)}
+            data={{
+              visitNum:this.state.modalData.visitNum,
+              time:this.state.modalData.time,
+              doctorId:this.state.doctorId,
+              date:this.state.modalData.date,
+              prim:this.state.modalData.prim,
+              token:"555"
+            }}
+          />
+        );
+      }
     }
   }
+
   render() {
-    return (
-      <View style={styles.container}>
-        {this.drawEditTable()}
-        <FlatList
-          data={this.listOfCells}
-          keyExtractor={item => item.time}
-          numColumns={1}
-          style={{ flex: 1, alignSelf: "stretch", backgroundColor: "#f1fff0" }}
-          renderItem={({ item }) => {
-            return (
-              <TouchableOpacity
-                onPress={() =>
-                  this.setState({
-                    showEditTable: true,
-                    modalData : item
-                  })
-                }
-              >
-                <Cell
-                  name={item.prim}
-                  time={item.time}
-                  visitNum={item.visitNum}
-                />
-              </TouchableOpacity>
-            );
-          }}
-        />
-      </View>
-    );
+    if (this.state.loading) {
+      return <View></View>;
+    } else
+      return (
+        <View style={styles.container}>
+          {this.drawEditTable()}
+          <FlatList
+            data={this.state.listOfCells}
+            keyExtractor={item => item.time}
+            numColumns={1}
+            style={{
+              flex: 1,
+              alignSelf: "stretch",
+              backgroundColor: "#f1fff0"
+            }}
+            renderItem={({ item }) => {
+              return (
+                <TouchableOpacity
+                  onPress={() =>
+                    this.setState({
+                      showEditTable: true,
+                      modalData: item
+                    })
+                  }
+                >
+                  <Cell
+                    name={item.prim}
+                    time={item.time}
+                    visitNum={item.visitNum}
+                  />
+                </TouchableOpacity>
+              );
+            }}
+          />
+        </View>
+      );
   }
 }
 class Cell extends React.Component {

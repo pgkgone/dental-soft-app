@@ -55,7 +55,8 @@ export class AdminTimeTable extends React.Component {
     };
   };
   state={
-    listOfCells:null
+    listOfCells:null,
+    curr_date:new Date().toISOString()
   }
   /*
         Сортирует врачей в алфавитном порядке 
@@ -79,6 +80,8 @@ export class AdminTimeTable extends React.Component {
     */
   dateChangedApiCall(date) { 
     console.log("Дата поменялась нужно вызвать Api " + date);
+    this.setState({curr_date:date})
+    console.log(this.state.curr_date)
     this.initialApiCall(date.slice(0, 10).replace(/-/g, "-"))
   }
 
@@ -97,7 +100,7 @@ export class AdminTimeTable extends React.Component {
       Roboto_medium: require("native-base/Fonts/Roboto_medium.ttf")
     });
     console.log("test")
-    await this.initialApiCall("2019-12-18")
+    await this.initialApiCall(this.state.curr_date.slice(0, 10).replace(/-/g, "-"))
     this.setState({ loading: false });
   }
   render() {
@@ -136,7 +139,7 @@ export class AdminTimeTable extends React.Component {
                 data: {
                   name: item.name,
                   doctorId: item.doctorId,
-                  date: this.date
+                  date: this.state.curr_date
                 }
               };
               return (
