@@ -1,9 +1,94 @@
 import React from "react";
-import { Text, View, FlatList, StyleSheet } from "react-native";
-import { Header } from "react-navigation";
+import {
+  Text,
+  View,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity
+} from "react-native";
+import { Container, Header, Body, Form } from "native-base";
+import { NavigationHeader } from "./NavigationHeader";
+import { Cell } from "./Cell";
+import { EditTable } from "./EditTable";
 export class DoctorTimeTable extends React.Component {
+  static navigationOptions = ({ navigation }) => {
+    return {
+      header: null
+    };
+  };
+  state = {
+    showEditTable: false
+  };
+
+  initApiCall() {
+    this.data = {
+      dates: [
+        {
+          date: "11.12.1212",
+          cells: [
+            {
+              visitNum: "Первое посещение 11 12",
+              name: "Иван Иванов",
+              time: "11:00",
+              date: "11.12.1212"
+            },
+            {
+              visitNum: "Первое посещение",
+              name: "Иван Иванов",
+              time: "11:00",
+              date: "11.12.1212"
+            },
+            {
+              visitNum: "Первое посещение 11 12",
+              name: "Иван Иванов",
+              time: "11:00",
+              date: "11.12.1212"
+            },
+            {
+              visitNum: "Первое посещение",
+              name: "Иван Иванов",
+              time: "11:00",
+              date: "11.12.1212"
+            }
+          ]
+        },
+        {
+          date: "12.13.1212",
+          cells: [
+            {
+              visitNum: "Первое посещение 12 13",
+              name: "Иван Иванов",
+              time: "11:00",
+              date: "11.12.1212"
+            }
+          ]
+        },
+        {
+          date: "10.13.1212",
+          cells: [
+            {
+              visitNum: "Первое посещение 12 13",
+              name: "Иван Иванов",
+              time: "11:00",
+              date: "11.12.1212"
+            },
+            {
+              visitNum: "Первое посещение 12 13",
+              name: "Иван Иванов",
+              time: "11:00",
+              date: "11.12.1212"
+            }
+          ]
+        }
+      ]
+    };
+  }
+
+  dateChangedApiCall(date) {
+    console.log("Дата поменялась нужно вызвать Api " + date);
+  }
   /*
-    this.props.data = {
+    this..data = {
       dates : [{
         date,  дд.мм.гггг для отображения в заголовке столбца
         cells : [{
@@ -20,13 +105,15 @@ export class DoctorTimeTable extends React.Component {
   */
   constructor(props) {
     super(props);
+    //this.data = this.initApiCall()
+    this.initApiCall();
     this.tableHeader = (
       <FlatList
-        data={this.props.data.dates.map(item => {
+        data={this.data.dates.map(item => {
           var dataArr = { key: item.date };
           return dataArr;
         })}
-        numColumns={this.props.data.dates.length}
+        numColumns={this.data.dates.length}
         style={{ flex: 1, alignSelf: "stretch", backgroundColor: "#a52b2a" }}
         renderItem={({ item }) => <Text style={styles.header}>{item.key}</Text>}
       />
@@ -38,12 +125,12 @@ export class DoctorTimeTable extends React.Component {
     */
   TableFormatter() {
     var Cells = [];
-    var listOfColumns = this.props.data.dates.map(item => item.cells);
+    var listOfColumns = this.data.dates.map(item => item.cells);
     var longestArray = Math.max.apply(
       null,
       listOfColumns.map(item => item.length)
     );
-    for (var i = 0; i < longestArray * this.props.data.dates.length; i++) {
+    for (var i = 0; i < longestArray * this.data.dates.length; i++) {
       Cells.push({
         key: i,
         name: "",
@@ -57,7 +144,8 @@ export class DoctorTimeTable extends React.Component {
           key: Cells[i + listOfColumns.length * index].key,
           name: item.name,
           visitNum: item.visitNum,
-          time: item.time
+          time: item.time,
+          date : item.date
         };
         Cells[i + listOfColumns.length * index] = newCell;
       });
@@ -65,76 +153,128 @@ export class DoctorTimeTable extends React.Component {
     return Cells;
   }
 
+  
+  seEditTable() {
+    this.setState({
+      showEditTable: false
+    });
+  }
+
+  //эта функция вызывается после нажатия на кнопку сохранить
+  saveChanges(data) {
+    this.setState({ showEditTable: false });
+  }
+  showEditTable(newState) {
+    this.setState(newState);
+  }
+  drawEditTable() {
+    dataToTable = this.state.modalData;// нужно вызвать Api
+    // dataToTable = {
+    //   visitNum : "Первое посещение", - "?константно "1-е посещение" если есть prim?"
+    //   time : item,
+    //   doctorId : this.data.doctorId,
+    //   date : this.data.date,
+    //   prim : apiData.prim,
+    //   mk : apiData.mk,
+    //   nvr : apiData.nvr,
+    //   kab : apiData.kab
+    // }
+    if (this.state.showEditTable === true) {
+      return (
+        <EditTable
+          closeFun={(data) => this.saveChanges(data)}
+          data = {dataToTable}
+        />
+      );
+    }
+  }
+
   render() {
     return (
-      <Text>ok boomer</Text>
-      /*<View style={styles.container }>
+      <Container>
+        <Header
+          androidStatusBarColor="#a52b2a"
+          style={{
+            flexDirection: "row",
+            justifyContent: "center",
+            backgroundColor: "#a52b2a"
+          }}
+        >
+          <Body
+            style={{
+              flexDirection: "row",
+              justifyContent: "center",
+              backgroundColor: "#a52b2a"
+            }}
+          >
+            <NavigationHeader
+              apiCall={date => this.dateChangedApiCall(date)}
+              date={new Date("1995-12-17T03:24:00")}
+            />
+          </Body>
+        </Header>
+        {this.drawEditTable()}
+        <View style={styles.container}>
           <FlatList
             data={this.listOfCells}
             keyExtractor={item => item.key}
-            numColumns={this.props.data.dates.length}
-            ListHeaderComponent={this.tableHeader} 
-            style={{flex : 1, alignSelf:'stretch', backgroundColor: '#f1fff0', }}
-            renderItem={({item}) => <Cell name={item.name} time={item.time} visitNum={item.visitNum} />}
+            numColumns={this.data.dates.length}
+            ListHeaderComponent={this.tableHeader}
+            style={{
+              flex: 1,
+              alignSelf: "stretch",
+              backgroundColor: "#f1fff0"
+            }}
+            renderItem={({ item }) => {
+              if (item.time === "") {
+                return (<View
+                  style={{
+                    flex: 1,
+                    flexDirection: "row",
+                    borderWidth: 0.5,
+                    borderColor: "black"
+                  }}
+                >
+                  <Cell
+                    name={item.name}
+                    time={item.time}
+                    visitNum={item.visitNum}
+                  />
+                </View>);
+              } else {
+                return (
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      flexDirection: "row",
+                      borderWidth: 0.5,
+                      borderColor: "black"
+                    }}
+                    onPress={() =>
+                      this.setState({
+                        showEditTable: true,
+                        modalData: item
+                      })
+                    }
+                  >
+                    <Cell
+                      name={item.name}
+                      time={item.time}
+                      visitNum={item.visitNum}
+                    />
+                  </TouchableOpacity>
+                );
+              }
+            }}
           />
-        </View>*/
-    );
-  }
-}
-class Cell extends React.Component {
-  render() {
-    return (
-      <View
-        style={{
-          flex: 1,
-          flexDirection: "row",
-          borderWidth: 0.5,
-          borderColor: "black"
-        }}
-      >
-        <View
-          style={{
-            width: "30%",
-            flexDirection: "column",
-            justifyContent: "center"
-          }}
-        >
-          <View>
-            <Text style={styles.item}>{this.props.time}</Text>
-          </View>
         </View>
-        <View style={{ width: "70%", flexDirection: "column" }}>
-          <View
-            style={{
-              flex: 1,
-              flexDirection: "column",
-              justifyContent: "flex-end",
-              paddingTop: 12,
-              paddingBottom: 5
-            }}
-          >
-            <Text style={styles.item}>{this.props.name}</Text>
-          </View>
-          <View
-            style={{
-              flex: 1,
-              flexDirection: "column",
-              justifyContent: "flex-start",
-              paddingBottom: 12,
-              paddingTop: 5
-            }}
-          >
-            <Text style={styles.item}>{this.props.visitNum}</Text>
-          </View>
-        </View>
-      </View>
+      </Container>
     );
   }
 }
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 22,
     borderWidth: 0.5,
     borderColor: "black"
   },

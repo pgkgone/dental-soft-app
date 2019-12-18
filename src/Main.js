@@ -1,6 +1,5 @@
 import React from "react";
 import { Text, View, FlatList,StyleSheet } from "react-native";
-import {AdminTimeTable} from "./Components/AdminTimeTable"
 export class Main extends React.Component {
   data =  {
       date : '11.12.1212',

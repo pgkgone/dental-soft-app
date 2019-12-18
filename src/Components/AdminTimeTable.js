@@ -46,11 +46,6 @@ export class AdminTimeTable extends React.Component {
   constructor(props) {
     super(props);
     this.data = this.props.navigation.state.params.data; //тут должен быть вызван initialApiCall(currentDate)
-    this.props.navigation.setParams({
-      headerTitle: () => (
-        <NavigationHeader apiCall={date => this.dateChangedApiCall(date)} />
-      )
-    });
     this.listOfCells = this.TableFormatter(); 
   }
   //устанавливаем stacknavigation header
