@@ -36,6 +36,23 @@ class Network {
     });
   }
 
+  static async GetDocsAll(token, date) {
+    console.log("Enter req")
+    var __xmlattr = "<tokenId>" + token + "</tokenId><datez>" + date + "</datez>";
+    return new Promise(resolve => {
+      soap.createClient(this.url, function(err, client) {
+        if(err!=null) throw "Create Client Error!"
+        client.GetDocsAll({ _xml: __xmlattr }, function(err, result) {
+          if (err == null) {
+            resolve(result);
+          } else{
+            throw "Network Error!"
+          }
+        });
+      });
+    });
+  }
+
   static async GetTimes(token, id, date) {
     var __xmlattr =
       "<tokenId>" +
