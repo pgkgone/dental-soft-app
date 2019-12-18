@@ -9,7 +9,7 @@ import {
   Modal,
   TextInput
 } from "react-native";
-import { EditTable} from "./EditTable"
+import { EditTable} from "../Components/EditTable"
 import { Button } from "native-base";
 
 /*

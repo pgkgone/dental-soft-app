@@ -7,9 +7,9 @@ import {
   TouchableOpacity
 } from "react-native";
 import { Container, Header, Body, Form } from "native-base";
-import { NavigationHeader } from "./NavigationHeader";
-import { Cell } from "./Cell";
-import { EditTable } from "./EditTable";
+import { NavigationHeader } from "../Components/NavigationHeader";
+import { Cell } from "../Components/Cell";
+import { EditTable } from "../Components/EditTable";
 export class DoctorTimeTable extends React.Component {
   static navigationOptions = ({ navigation }) => {
     return {
@@ -163,6 +163,7 @@ export class DoctorTimeTable extends React.Component {
   //эта функция вызывается после нажатия на кнопку сохранить
   saveChanges(data) {
     this.setState({ showEditTable: false });
+    console.log("saved")
   }
   showEditTable(newState) {
     this.setState(newState);
