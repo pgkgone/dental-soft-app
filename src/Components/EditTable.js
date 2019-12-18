@@ -10,18 +10,33 @@ import {
   TextInput
 } from "react-native";
 import { Button } from "native-base";
+import Network from "../Utils/Networking";
+
 export class EditTable extends React.Component {
     state = {
-      visitNum : "Первое посещение",
+      visitNum : this.props.data.visitNum,
       time : this.props.data.time,
       doctorId : this.props.data.doctorId,
       date : this.props.data.date,
       prim : this.props.data.prim,
       mk : this.props.data.mk,
       nvr : this.props.data.nvr,
-      kab : this.props.data.kab
+      kab : this.props.data.kab,
+      token: this.props.data.token,
+      loading:true
     };
   
+    async getData(){
+      return await Network.GetGrvData(this.state.token,this.state.doctorId,this.state.date,this.state.time)
+    }
+    async componentDidMount() {
+      var response = await this.getData()
+      console.log(response)
+      this.setState({kab:response.kab, nvr:response.nvr.toString(),fio:response.fio,mk:response.mk})
+      console.log(this.state)
+      this.setState({loading:false})
+    }
+
     onChangeprim(txt) {
       this.setState({ prim: txt });
     }
@@ -32,6 +47,11 @@ export class EditTable extends React.Component {
       this.setState({ kab: txt });
     }
     render() {
+      if(this.state.loading){
+        return(
+          <View></View>
+        )
+      } else
       return (
         <Modal animationType="fade" transparent={true} visible={true}>
           <View
