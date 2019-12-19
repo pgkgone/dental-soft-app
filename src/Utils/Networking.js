@@ -123,6 +123,30 @@ class Network {
     });
   }
 
+  static async GetDates(token, id, date) {
+    var __xmlattr =
+      "<tokenId>" +
+      token +
+      "</tokenId><docId>" +
+      id +
+      "</docId><datez>" +
+      date +
+      "</datez>";
+    return new Promise(resolve => {
+      soap.createClient(this.url, function(err, client) {
+        if (err != null) throw "Create Client Error!";
+        client.GetDates({ _xml: __xmlattr }, function(err, result) {
+          if (err == null) {
+            resolve(result);
+          } else {
+            throw "Network Error!";
+          }
+        });
+      });
+    });
+  }
+
+
   static async EditGrvData(token, id, date, time,mk,prim,nvr,kab) {
     console.log("here")
     var __xmlattr =
