@@ -4,7 +4,7 @@ import {Main} from './../Main'
 import {AdminTimeTable} from "../Screens/AdminTimeTable";
 import {AdminDoctorTimeTable} from '../Screens/AdminDoctorTimeTable'
 import {DoctorTimeTable} from '../Screens/DoctorTimeTable'
-
+import {Settings} from "../Screens/Settings"
 const MainNavigator = createStackNavigator(
     {
         Main: 
@@ -22,6 +22,10 @@ const MainNavigator = createStackNavigator(
         DoctorTimeTable: 
         {
             screen: DoctorTimeTable
+        },
+        Settings:
+        {
+            screen : Settings
         }
     },
     {

@@ -12,6 +12,7 @@ import DateTimePicker from "react-native-modal-datetime-picker";
 import Icon2 from "react-native-vector-icons/FontAwesome";
 import * as Font from "expo-font";
 import Network from '../Utils/Networking'
+import {NavigationHeader} from "../Components/NavigationHeader"
 /*
 
     формат данных для вывода
@@ -121,7 +122,7 @@ export class AdminTimeTable extends React.Component {
               backgroundColor: "#a52b2a"
             }}
           >
-            <NavigationHeader apiCall={date => this.dateChangedApiCall(date)} />
+            <NavigationHeader apiCall={date => this.dateChangedApiCall(date)} navigateToSettings={() => this.props.navigation.navigate("Settings")}/>
           </Body>
         </Header>
         <View style={styles.container}>
@@ -198,63 +199,6 @@ class Cell extends React.Component {
             />
           </View>
         </View>
-      </View>
-    );
-  }
-}
-
-class NavigationHeader extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      isDateTimePickerVisible: false,
-      currentDate: new Date().toISOString()
-    };
-  }
-
-  showDateTimePicker = () => {
-    this.setState({ isDateTimePickerVisible: true });
-  };
-
-  hideDateTimePicker = () => {
-    this.setState({ isDateTimePickerVisible: false });
-  };
-
-  handleDatePicked = date => {
-    this.setState({ currentDate: date.toISOString() });
-    this.props.apiCall(date.toISOString());
-    this.hideDateTimePicker();
-  };
-  render() {
-    return (
-      <View
-        style={{
-          flex: 1,
-          flexDirection: "row",
-          justifyContent: "center",
-          alignSelf: "center"
-        }}
-      >
-        <TouchableOpacity
-          style={{ flexDirection: "row", justifyContent: "center" }}
-          onPress={() => {
-            this.showDateTimePicker();
-          }}
-        >
-          <DateTimePicker
-            isVisible={this.state.isDateTimePickerVisible}
-            onConfirm={this.handleDatePicked}
-            onCancel={this.hideDateTimePicker}
-          />
-          <View>
-            <Text style={{ color: "white", fontSize: 20 }}>
-              {this.state.currentDate.slice(0, 10).replace(/-/g, ".") + "  "}
-            </Text>
-          </View>
-          <View>
-            <Icon2 name="calendar" size={24} color={"white"} />
-          </View>
-        </TouchableOpacity>
       </View>
     );
   }
