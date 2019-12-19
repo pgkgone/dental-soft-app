@@ -10,6 +10,7 @@ import { Container, Header, Body, Form } from "native-base";
 import { NavigationHeader } from "../Components/NavigationHeader";
 import { Cell } from "../Components/Cell";
 import { EditTable } from "../Components/EditTable";
+import Network from "../Utils/Networking";
 export class DoctorTimeTable extends React.Component {
   static navigationOptions = ({ navigation }) => {
     return {
@@ -17,120 +18,109 @@ export class DoctorTimeTable extends React.Component {
     };
   };
   state = {
-    showEditTable: false
+    showEditTable: false,
+    loading: true,
+    dates: null,
+    listOfCells: null,
+    doctorId: 4,
+    date: new Date().toISOString(),
+    numColumns: 3
   };
 
-  initApiCall() {
-    this.data = {
-      dates: [
-        {
-          date: "11.12.1212",
-          cells: [
-            {
-              visitNum: "Первое посещение 11 12",
-              name: "Иван Иванов",
-              time: "11:00",
-              date: "11.12.1212"
-            },
-            {
-              visitNum: "Первое посещение",
-              name: "Иван Иванов",
-              time: "11:00",
-              date: "11.12.1212"
-            },
-            {
-              visitNum: "Первое посещение 11 12",
-              name: "Иван Иванов",
-              time: "11:00",
-              date: "11.12.1212"
-            },
-            {
-              visitNum: "Первое посещение",
-              name: "Иван Иванов",
-              time: "11:00",
-              date: "11.12.1212"
-            }
-          ]
-        },
-        {
-          date: "12.13.1212",
-          cells: [
-            {
-              visitNum: "Первое посещение 12 13",
-              name: "Иван Иванов",
-              time: "11:00",
-              date: "11.12.1212"
-            }
-          ]
-        },
-        {
-          date: "10.13.1212",
-          cells: [
-            {
-              visitNum: "Первое посещение 12 13",
-              name: "Иван Иванов",
-              time: "11:00",
-              date: "11.12.1212"
-            },
-            {
-              visitNum: "Первое посещение 12 13",
-              name: "Иван Иванов",
-              time: "11:00",
-              date: "11.12.1212"
-            }
-          ]
-        }
-      ]
-    };
+  replaceAll(str, find, replace) {
+    return str.replace(new RegExp(find, "g"), replace);
   }
 
-  dateChangedApiCall(date) {
-    console.log("Дата поменялась нужно вызвать Api " + date);
+  async componentDidMount() {
+    //TODO ограничитель
+    await this.initApiCall();
+    this.setState({ loading: false });
   }
-  /*
-    this..data = {
-      dates : [{
-        date,  дд.мм.гггг для отображения в заголовке столбца
-        cells : [{
-          visitNum, - Номер посещения
-          name, - Имя Фамилия посетителя
-          time - время визита
-        },
-        ...
-        ]  
-      },
-        ...
-      ]
-    }
-  */
-  constructor(props) {
-    super(props);
-    //this.data = this.initApiCall()
-    this.initApiCall();
+
+  async initApiCall() {
+    var times = await Network.GetDatesAll(
+      "555",
+      this.state.doctorId,
+      this.state.date.slice(0, 10).replace(/-/g, "-")
+    );
+    var formatted = times.rows.row
+      .map(item => {
+        return this.replaceAll(item.name, "-", ".");
+      })
+      .slice(0, this.state.numColumns);
+    console.log(formatted);
     this.tableHeader = (
       <FlatList
-        data={this.data.dates.map(item => {
-          var dataArr = { key: item.date };
+        data={formatted.map(item => {
+          var dataArr = { key: item };
           return dataArr;
         })}
-        numColumns={this.data.dates.length}
+        numColumns={formatted.length}
         style={{ flex: 1, alignSelf: "stretch", backgroundColor: "#a52b2a" }}
         renderItem={({ item }) => <Text style={styles.header}>{item.key}</Text>}
       />
     );
-    this.listOfCells = this.TableFormatter();
+
+    this.setState({ dates: formatted });
+    var data = {};
+    var dates = [];
+    for (var i = 0; i < formatted.length; i++) {
+      var pa = await Network.GetTimesAll(
+        "555",
+        this.state.doctorId,
+        formatted[i]
+      );
+      var form = pa.rows.row.map(item => {
+        var p = null;
+        if (Object.entries(item.id).length === 0) {
+          p = {
+            visitNum: "",
+            time: item.name,
+            doctorId: this.state.doctorId,
+            date: formatted[i],
+            name: ""
+          };
+        } else {
+          p = {
+            visitNum: item.id.split(",")[1],
+            time: item.name,
+            doctorId: this.state.doctorId,
+            date: formatted[i],
+            name: item.id.split(", ")[0]
+          };
+        }
+        return p;
+      });
+      dates.push({
+        date: formatted[i],
+        cells: form
+      });
+    }
+    data.dates = dates;
+    this.setState({ listOfCells: this.TableFormatter(data) });
+  }
+
+  dateChangedApiCall(dates) {
+    console.log(dates);
+    this.setState({ date: dates.slice(0, 10).replace(/-/g, "-") });
+    this.initApiCall();
+  }
+  constructor(props) {
+    super(props);
   }
   /*
         Метод приводящий массив json'ов к нужному виду (массив чередующихся по неделям ячеек)
     */
-  TableFormatter() {
+  TableFormatter(data) {
+    console.log("cyka");
     var Cells = [];
-    var listOfColumns = this.data.dates.map(item => item.cells);
+    var listOfColumns = data.dates.map(item => item.cells);
+    console.log("here");
     var longestArray = Math.max.apply(
       null,
       listOfColumns.map(item => item.length)
     );
-    for (var i = 0; i < longestArray * this.data.dates.length; i++) {
+    for (var i = 0; i < longestArray * data.dates.length; i++) {
       Cells.push({
         key: i,
         name: "",
@@ -145,7 +135,7 @@ export class DoctorTimeTable extends React.Component {
           name: item.name,
           visitNum: item.visitNum,
           time: item.time,
-          date : item.date
+          date: item.date
         };
         Cells[i + listOfColumns.length * index] = newCell;
       });
@@ -153,7 +143,6 @@ export class DoctorTimeTable extends React.Component {
     return Cells;
   }
 
-  
   seEditTable() {
     this.setState({
       showEditTable: false
@@ -162,115 +151,125 @@ export class DoctorTimeTable extends React.Component {
 
   //эта функция вызывается после нажатия на кнопку сохранить
   saveChanges(data) {
+    console.log(data)
+    Network.EditGrvData("555",data.doctorId, data.date,data.time,data.mk,data.prim,data.nvr,data.kab)
+    console.log("cyka")
     this.setState({ showEditTable: false });
-    console.log("saved")
+    this.initApiCall()
   }
   showEditTable(newState) {
     this.setState(newState);
   }
   drawEditTable() {
-    dataToTable = this.state.modalData;// нужно вызвать Api
-    // dataToTable = {
-    //   visitNum : "Первое посещение", - "?константно "1-е посещение" если есть prim?"
-    //   time : item,
-    //   doctorId : this.data.doctorId,
-    //   date : this.data.date,
-    //   prim : apiData.prim,
-    //   mk : apiData.mk,
-    //   nvr : apiData.nvr,
-    //   kab : apiData.kab
-    // }
-    if (this.state.showEditTable === true) {
-      return (
-        <EditTable
-          closeFun={(data) => this.saveChanges(data)}
-          data = {dataToTable}
-        />
-      );
+    console.log(this.state.modalData)
+    console.log("Clicked")
+    if(this.state.modalData === undefined){
+      console.log("a")
+    } else{
+      if (this.state.showEditTable === true) {
+        return (
+          <EditTable
+            closeFun={(data) => this.saveChanges(data)}
+            data={{
+              visitNum:this.state.modalData.name,
+              time:this.state.modalData.time,
+              doctorId:this.state.doctorId,
+              date:this.state.modalData.date,
+              prim:this.state.modalData.visitNum,
+              token:"555"
+            }}
+          />
+        );
+      }
     }
   }
 
   render() {
-    return (
-      <Container>
-        <Header
-          androidStatusBarColor="#a52b2a"
-          style={{
-            flexDirection: "row",
-            justifyContent: "center",
-            backgroundColor: "#a52b2a"
-          }}
-        >
-          <Body
+    if (this.state.loading) {
+      return <View></View>;
+    } else
+      return (
+        <Container>
+          <Header
+            androidStatusBarColor="#a52b2a"
             style={{
               flexDirection: "row",
               justifyContent: "center",
               backgroundColor: "#a52b2a"
             }}
           >
-            <NavigationHeader
-              apiCall={date => this.dateChangedApiCall(date)}
-              date={new Date("1995-12-17T03:24:00")}
+            <Body
+              style={{
+                flexDirection: "row",
+                justifyContent: "center",
+                backgroundColor: "#a52b2a"
+              }}
+            >
+              <NavigationHeader
+                apiCall={date => this.dateChangedApiCall(date)}
+                date={new Date("1995-12-17T03:24:00")}
+              />
+            </Body>
+          </Header>
+          {this.drawEditTable()}
+          <View style={styles.container}>
+            <FlatList
+              data={this.state.listOfCells}
+              keyExtractor={item => item.key}
+              numColumns={this.state.dates.length}
+              ListHeaderComponent={this.tableHeader}
+              style={{
+                flex: 1,
+                alignSelf: "stretch",
+                backgroundColor: "#f1fff0"
+              }}
+              renderItem={({ item }) => {
+                if (item.time === "") {
+                  return (
+                    <View
+                      style={{
+                        flex: 1,
+                        flexDirection: "row",
+                        borderWidth: 0.5,
+                        borderColor: "black"
+                      }}
+                    >
+                      <Cell
+                        name={item.name}
+                        time={item.time}
+                        visitNum={item.visitNum}
+                      />
+                    </View>
+                  );
+                } else {
+                  return (
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        flexDirection: "row",
+                        borderWidth: 0.5,
+                        borderColor: "black"
+                      }}
+                      onPress={() =>
+                        this.setState({
+                          showEditTable: true,
+                          modalData: item
+                        })
+                      }
+                    >
+                      <Cell
+                        name={item.name}
+                        time={item.time}
+                        visitNum={item.visitNum}
+                      />
+                    </TouchableOpacity>
+                  );
+                }
+              }}
             />
-          </Body>
-        </Header>
-        {this.drawEditTable()}
-        <View style={styles.container}>
-          <FlatList
-            data={this.listOfCells}
-            keyExtractor={item => item.key}
-            numColumns={this.data.dates.length}
-            ListHeaderComponent={this.tableHeader}
-            style={{
-              flex: 1,
-              alignSelf: "stretch",
-              backgroundColor: "#f1fff0"
-            }}
-            renderItem={({ item }) => {
-              if (item.time === "") {
-                return (<View
-                  style={{
-                    flex: 1,
-                    flexDirection: "row",
-                    borderWidth: 0.5,
-                    borderColor: "black"
-                  }}
-                >
-                  <Cell
-                    name={item.name}
-                    time={item.time}
-                    visitNum={item.visitNum}
-                  />
-                </View>);
-              } else {
-                return (
-                  <TouchableOpacity
-                    style={{
-                      flex: 1,
-                      flexDirection: "row",
-                      borderWidth: 0.5,
-                      borderColor: "black"
-                    }}
-                    onPress={() =>
-                      this.setState({
-                        showEditTable: true,
-                        modalData: item
-                      })
-                    }
-                  >
-                    <Cell
-                      name={item.name}
-                      time={item.time}
-                      visitNum={item.visitNum}
-                    />
-                  </TouchableOpacity>
-                );
-              }
-            }}
-          />
-        </View>
-      </Container>
-    );
+          </View>
+        </Container>
+      );
   }
 }
 const styles = StyleSheet.create({
