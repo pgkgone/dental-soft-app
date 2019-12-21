@@ -122,7 +122,7 @@ export class AdminTimeTable extends React.Component {
               backgroundColor: "#a52b2a"
             }}
           >
-            <NavigationHeader apiCall={date => this.dateChangedApiCall(date)} navigateToSettings={() => this.props.navigation.navigate("Settings")}/>
+            <NavigationHeader date={this.state.curr_date} apiCall={date => this.dateChangedApiCall(date)} navigateToSettings={() => this.props.navigation.navigate("Settings")}/>
           </Body>
         </Header>
         <View style={styles.container}>

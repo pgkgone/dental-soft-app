@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   Text,
@@ -10,16 +9,25 @@ import {
 } from "react-native";
 import DateTimePicker from "react-native-modal-datetime-picker";
 import Icon2 from "react-native-vector-icons/FontAwesome";
-import SettingsIcon from "react-native-vector-icons/Feather"
+import SettingsIcon from "react-native-vector-icons/Feather";
+import ArrowIcons from "react-native-vector-icons/AntDesign";
 import * as Font from "expo-font";
 import { Container, Header, Body } from "native-base";
 //нужно указывать callback в this.porps.apiCall(date)
 export class NavigationHeader extends React.Component {
+  weekday = new Array(7);
   constructor(props) {
     super(props);
+    this.weekday[0] = "(Вс)";
+    this.weekday[1] = "(Пн)";
+    this.weekday[2] = "(Вт)";
+    this.weekday[3] = "(Ср)";
+    this.weekday[4] = "(Чт)";
+    this.weekday[5] = "(Пт)";
+    this.weekday[6] = "(Сб)";
     this.state = {
       isDateTimePickerVisible: false,
-      currentDate: new Date().toISOString()
+      currentDate: new Date(this.props.date).toISOString()
     };
   }
 
@@ -32,10 +40,25 @@ export class NavigationHeader extends React.Component {
   };
 
   handleDatePicked = date => {
-    this.setState({ currentDate: date.toISOString() });
-    this.props.apiCall(date.toISOString());
+    this.setState({ currentDate: new Date(date).toISOString() });
+    this.props.apiCall(new Date(date).toISOString());
     this.hideDateTimePicker();
   };
+
+  nextDate() {
+    var newDate = new Date(this.state.currentDate).setDate(
+      new Date(this.state.currentDate).getDate() + 1
+    );
+    this.handleDatePicked(new Date(newDate));
+  }
+
+  prevDate() {
+    var newDate = new Date(this.state.currentDate).setDate(
+      new Date(this.state.currentDate).getDate() - 1
+    );
+    this.handleDatePicked(new Date(newDate));
+  }
+  this;
   render() {
     return (
       <View
@@ -46,30 +69,103 @@ export class NavigationHeader extends React.Component {
           alignSelf: "center"
         }}
       >
-        <TouchableOpacity style={{alignSelf : "flex-start"}} onPress={() => {this.props.navigateToSettings()}}>
-          <SettingsIcon name="settings" color={"white"} size={24} style={{width : 24}}/>
+        <TouchableOpacity
+          style={{ flexDirection: "column", justifyContent: "center" }}
+          onPress={() => {
+            this.props.navigateToSettings();
+          }}
+        >
+          <SettingsIcon
+            name="settings"
+            color={"white"}
+            size={24}
+            style={{ width: 24 }}
+          />
         </TouchableOpacity>
         <View
-          style={{ flexDirection: "row", justifyContent: "center", alignSelf : "center", flex : 1, paddingRight : 24 }}
+          style={{
+            flexDirection: "row",
+            justifyContent: "center",
+            alignSelf: "center",
+            flex: 1,
+          }}
         >
-          <TouchableOpacity style={{flexDirection : "row"}} onPress={() => {this.showDateTimePicker();}}> 
-          <DateTimePicker
-            isVisible={this.state.isDateTimePickerVisible}
-            onConfirm={this.handleDatePicked}
-            onCancel={this.hideDateTimePicker}
-            initialValue={new Date('1995-12-17T03:24:00')}
-          />
-          <View>
-            <Text style={{ color: "white", fontSize: 20 }}>
-              {this.state.currentDate.slice(0, 10).replace(/-/g, ".") + "  "}
-            </Text>
+          <TouchableOpacity
+            style={{
+              felx: 1,
+              flexDirection: "column",
+              justifyContent: "center",
+              paddingHorizontal: 20
+            }}
+          >
+            <ArrowIcons
+              name="left"
+              color={"white"}
+              size={22}
+              onPress={() => this.prevDate()}
+            />
+          </TouchableOpacity>
+          <View
+            style={{
+              felx: 1,
+              flexDirection: "column",
+              justifyContent: "center"
+            }}
+          >
+            <TouchableOpacity
+              style={{ flexDirection: "row" }}
+              onPress={() => {
+                this.showDateTimePicker();
+              }}
+            >
+              <DateTimePicker
+                isVisible={this.state.isDateTimePickerVisible}
+                onConfirm={this.handleDatePicked}
+                onCancel={this.hideDateTimePicker}
+                date={new Date(this.state.currentDate)}
+              />
+              <View>
+                <Text
+                  style={{
+                    color: "white",
+                    fontSize: 22,
+                    textAlignVertical: "center"
+                  }}
+                >
+                  {this.state.currentDate.slice(0, 10).replace(/-/g, ".") +
+                    this.weekday[new Date(this.state.currentDate).getDay()] +
+                    "  "}
+                </Text>
+              </View>
+              <View >
+                <Icon2 name="calendar" size={24} color={"white"} />
+              </View>
+            </TouchableOpacity>
           </View>
-          <View>
-            <Icon2 name="calendar" size={24} color={"white"} />
-          </View>
+          <TouchableOpacity
+            style={{
+              felx: 1,
+              flexDirection: "column",
+              justifyContent: "center",
+              paddingHorizontal: 20
+            }}
+          >
+            <ArrowIcons
+              name="right"
+              color={"white"}
+              size={22}
+              onPress={() => this.nextDate()}
+            />
           </TouchableOpacity>
         </View>
       </View>
     );
   }
 }
+
+const styles = StyleSheet.create({
+  columnCenterize: {
+    flexDirection: "column",
+    justifyContent: "center"
+  }
+});

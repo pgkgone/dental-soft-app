@@ -100,9 +100,8 @@ export class DoctorTimeTable extends React.Component {
     this.setState({ listOfCells: this.TableFormatter(data) });
   }
 
-  dateChangedApiCall(dates) {
-    console.log(dates);
-    this.setState({ date: dates.slice(0, 10).replace(/-/g, "-") });
+  dateChangedApiCall(datesl) {
+    this.setState({ date: datesl.slice(0, 10).replace(/-/g, "-") });
     this.initApiCall();
   }
   constructor(props) {
@@ -208,7 +207,7 @@ export class DoctorTimeTable extends React.Component {
               <NavigationHeader
                 apiCall={date => this.dateChangedApiCall(date)}
                 navigateToSettings={() => this.props.navigation.navigate("Settings")}
-                date={new Date("1995-12-17T03:24:00")}
+                date={this.state.date}
               />
             </Body>
           </Header>
