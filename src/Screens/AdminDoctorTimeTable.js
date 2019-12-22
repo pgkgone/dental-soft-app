@@ -89,10 +89,13 @@ export class AdminDoctorTimeTable extends React.Component {
   //эта функция вызывается после нажатия на кнопку сохранить
   async saveChanges(data) {
     console.log(data)
-    Network.EditGrvData("555",data.doctorId, data.date,data.time,data.mk,data.prim,data.nvr,data.kab)
+    //Network.EditGrvData("555",data.doctorId, data.date,data.time,data.mk,data.prim,data.nvr,data.kab)
     console.log("cyka")
     this.setState({ showEditTable: false });
     this.initialApiCall()
+  }
+  deleteCell() {
+
   }
 
   async initialApiCall() {
@@ -137,7 +140,9 @@ export class AdminDoctorTimeTable extends React.Component {
       if (this.state.showEditTable === true) {
         return (
           <EditTable
-            closeFun={(data) => this.saveChanges(data)}
+            deleteFunc={() => this.deleteCell()}
+            closeFun={() => this.setState({ showEditTable: false })}
+            saveFun={(data) => this.saveChanges(data)}
             data={{
               visitNum:this.state.modalData.visitNum,
               time:this.state.modalData.time,

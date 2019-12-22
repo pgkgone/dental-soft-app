@@ -11,47 +11,61 @@ import {
 } from "react-native";
 import { Button } from "native-base";
 import Network from "../Utils/Networking";
+import DeleteIcons from "react-native-vector-icons/Feather";
+import CancelIcons from "react-native-vector-icons/Entypo";
 
 export class EditTable extends React.Component {
-    state = {
-      visitNum : this.props.data.visitNum,
-      time : this.props.data.time,
-      doctorId : this.props.data.doctorId,
-      date : this.props.data.date,
-      prim : this.props.data.prim,
-      mk : this.props.data.mk,
-      nvr : this.props.data.nvr,
-      kab : this.props.data.kab,
-      token: this.props.data.token,
-      loading:true
-    };
-  
-    async getData(){
-      return await Network.GetGrvData(this.state.token,this.state.doctorId,this.state.date,this.state.time)
-    }
-    async componentDidMount() {
-      var response = await this.getData()
-      console.log(response)
-      this.setState({kab:response.kab, nvr:response.nvr.toString(),fio:response.fio,mk:response.mk})
-      console.log(this.state)
-      this.setState({loading:false})
-    }
+  state = {
+    visitNum: "",
+    time: this.props.data.time,
+    doctorId: this.props.data.doctorId,
+    date: this.props.data.date,
+    prim: this.props.data.prim,
+    mk: "",
+    nvr: "",
+    kab: "",
+    token: this.props.data.token,
+    loading: true
+  };
 
-    onChangeprim(txt) {
-      this.setState({ prim: txt });
+  async getData() {
+    return await Network.GetGrvData(
+      this.state.token,
+      this.state.doctorId,
+      this.state.date,
+      this.state.time
+    );
+  }
+  async componentDidMount() {
+    var response = await this.getData();
+    if (response.prim == {}) {
+      console.log("ok boomer");
     }
-    onChangeTime(txt) {
-      this.setState({ nvr: txt });
-    }
-    onChangeCabinet(txt) {
-      this.setState({ kab: txt });
-    }
-    render() {
-      if(this.state.loading){
-        return(
-          <View></View>
-        )
-      } else
+    console.log("grv data " + response.prim.toString());
+    console.log(response);
+    this.setState({
+      kab: response.kab,
+      nvr: response.nvr.toString(),
+      fio: response.fio,
+      mk: response.mk
+    });
+    console.log(this.state);
+    this.setState({ loading: false });
+  }
+
+  onChangeprim(txt) {
+    this.setState({ prim: txt });
+  }
+  onChangeTime(txt) {
+    this.setState({ nvr: txt });
+  }
+  onChangeCabinet(txt) {
+    this.setState({ kab: txt });
+  }
+  render() {
+    if (this.state.loading) {
+      return <View></View>;
+    } else
       return (
         <Modal animationType="fade" transparent={true} visible={true}>
           <View
@@ -70,14 +84,55 @@ export class EditTable extends React.Component {
                   color: "white",
                   fontSize: 14,
                   flexDirection: "row",
-                  justifyContent: "center",
                   padding: 10
                 }}
               >
-                <Text style={{ color: "white", fontSize: 18 }}>
-                  {this.state.date + " " + this.state.time}
-                </Text>
+                <View
+                  style={{
+                    flex: 1,
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignSelf: "center"
+                  }}
+                >
+                  <DeleteIcons
+                    name="trash"
+                    size={22}
+                    color={"white"}
+                    onPress={() => this.props.deleteFunc()}
+                  />
+                </View>
+                <View
+                  style={{
+                    felx: 1,
+                    alignSelf: "center",
+                    flexDirection: "column",
+                    justifyContent: "center"
+                  }}
+                >
+                  <Text style={{ color: "white", fontSize: 18 }}>
+                    {this.state.date + " " + this.state.time}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    flex: 1,
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignSelf: "center"
+                  }}
+                >
+                  <CancelIcons
+                    name="cross"
+                    size={26}
+                    color={"white"}
+                    style={{ alignSelf: "flex-end" }}
+                    onPress={() => this.props.closeFun()}
+                  />
+                </View>
               </View>
+              <HiddenBox value={this.state.mk} title={"Номер карты:"}/>
+              <HiddenBox value={this.state.fio} title={"ФИО:"}/>
               <View style={styles.editBoxItemView}>
                 <Text style={styles.editBoxItem}>Описание:</Text>
                 <TextInput
@@ -128,17 +183,18 @@ export class EditTable extends React.Component {
                 <View
                   style={{
                     flexDirection: "row",
-                    justifyContent: "center",
-                    backgroundColor: "black"
+                    justifyContent: "center"
                   }}
                 >
                   <Button
                     onPress={() => {
-                      this.props.closeFun(this.state);
+                      this.props.saveFun(this.state);
                     }}
                     style={{ backgroundColor: "#a52a2a" }}
                   >
-                    <Text style={{ color: "white", padding: 10 }}>Сохранить</Text>
+                    <Text style={{ color: "white", padding: 10 }}>
+                      Сохранить
+                    </Text>
                   </Button>
                 </View>
               </View>
@@ -146,24 +202,50 @@ export class EditTable extends React.Component {
           </View>
         </Modal>
       );
-    }
   }
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      borderWidth: 0.5,
-      borderColor: "black"
-    },
-    item: {
-      color: "#509ffa",
-      textDecorationLine: "underline",
-      flex: 1,
-      fontSize: 18
-    },
-    editBoxItemView: {
-      padding: 10
-    },
-    editBoxItem: {
-      fontSize: 18
-    }
-  });
+}
+export class HiddenBox extends React.Component {
+  render() {
+    console.log("ok boomer")
+    console.log(this.props.value)
+    if(Object.entries(this.props.value).length === 0 && this.props.value.constructor === Object)
+    {
+    return (
+      <View></View>
+    );
+        }else{
+          return( <View style={styles.editBoxItemView}>
+            <Text style={styles.editBoxItem}>{this.props.title}</Text>
+            <TextInput
+              style={{
+                height: 40,
+                borderBottomWidth: 1,
+                borderBottomColor: "gray",
+                fontSize: 16
+              }}
+              editable={false}
+              value={this.props.value}
+            />
+          </View>);
+        }
+  }
+}
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    borderWidth: 0.5,
+    borderColor: "black"
+  },
+  item: {
+    color: "#509ffa",
+    textDecorationLine: "underline",
+    flex: 1,
+    fontSize: 18
+  },
+  editBoxItemView: {
+    padding: 10
+  },
+  editBoxItem: {
+    fontSize: 18
+  }
+});

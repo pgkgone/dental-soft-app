@@ -40,7 +40,7 @@ export class Main extends React.Component {
     ]  
 }
     render() {
-      return(this.props.navigation.navigate("DoctorTimeTable", {data : this.data}));
+      return(this.props.navigation.navigate("AdminTimeTable", {data : this.data}));
     }
 }
 

@@ -4,13 +4,15 @@ import {
   View,
   FlatList,
   StyleSheet,
-  TouchableOpacity
+  TouchableOpacity,
+  Dimensions 
 } from "react-native";
 import { Container, Header, Body, Form } from "native-base";
 import { NavigationHeader } from "../Components/NavigationHeader";
 import { Cell } from "../Components/Cell";
 import { EditTable } from "../Components/EditTable";
 import Network from "../Utils/Networking";
+import { ScrollView } from "react-native-gesture-handler";
 export class DoctorTimeTable extends React.Component {
   static navigationOptions = ({ navigation }) => {
     return {
@@ -151,7 +153,7 @@ export class DoctorTimeTable extends React.Component {
   //эта функция вызывается после нажатия на кнопку сохранить
   saveChanges(data) {
     console.log(data)
-    Network.EditGrvData("555",data.doctorId, data.date,data.time,data.mk,data.prim,data.nvr,data.kab)
+    //Network.EditGrvData("555",data.doctorId, data.date,data.time,data.mk,data.prim,data.nvr,data.kab)
     console.log("cyka")
     this.setState({ showEditTable: false });
     this.initApiCall()
@@ -159,6 +161,11 @@ export class DoctorTimeTable extends React.Component {
   showEditTable(newState) {
     this.setState(newState);
   }
+  
+  deleteCell(){
+
+  }
+  
   drawEditTable() {
     console.log(this.state.modalData)
     console.log("Clicked")
@@ -168,7 +175,9 @@ export class DoctorTimeTable extends React.Component {
       if (this.state.showEditTable === true) {
         return (
           <EditTable
-            closeFun={(data) => this.saveChanges(data)}
+            deleteFun={() => this.deleteCell()}
+            closeFun={() => this.setState({ showEditTable: false })}
+            saveFun={(data) => this.saveChanges(data)}
             data={{
               visitNum:this.state.modalData.name,
               time:this.state.modalData.time,
@@ -212,7 +221,8 @@ export class DoctorTimeTable extends React.Component {
             </Body>
           </Header>
           {this.drawEditTable()}
-          <View style={styles.container}>
+          <ScrollView horizontal={true} style={styles.container}>
+            <View style={{width : Math.round(Dimensions.get('window').width / 3 * 5)}}>
             <FlatList
               data={this.state.listOfCells}
               keyExtractor={item => item.key}
@@ -220,6 +230,7 @@ export class DoctorTimeTable extends React.Component {
               ListHeaderComponent={this.tableHeader}
               style={{
                 flex: 1,
+                width : Math.round(Dimensions.get('window').width),
                 alignSelf: "stretch",
                 backgroundColor: "#f1fff0"
               }}
@@ -267,7 +278,8 @@ export class DoctorTimeTable extends React.Component {
                 }
               }}
             />
-          </View>
+            </View>
+          </ScrollView>
         </Container>
       );
   }
