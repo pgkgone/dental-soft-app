@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TouchableHighlight,
   Modal,
+  ScrollView,
   TextInput
 } from "react-native";
 import { Button } from "native-base";
@@ -38,10 +39,6 @@ export class EditTable extends React.Component {
   }
   async componentDidMount() {
     var response = await this.getData();
-    if (response.prim == {}) {
-      console.log("ok boomer");
-    }
-    console.log("grv data " + response.prim.toString());
     console.log(response);
     this.setState({
       kab: response.kab,
@@ -78,6 +75,7 @@ export class EditTable extends React.Component {
             }}
           >
             <View style={{ width: "75%", backgroundColor: "#f1fff0" }}>
+            
               <View
                 style={{
                   backgroundColor: "#a52a2a",
@@ -131,10 +129,12 @@ export class EditTable extends React.Component {
                   />
                 </View>
               </View>
+              <View style={{height : '70%'}}>
+              <ScrollView>
               <HiddenBox value={this.state.mk} title={"Номер карты:"}/>
               <HiddenBox value={this.state.fio} title={"ФИО:"}/>
               <View style={styles.editBoxItemView}>
-                <Text style={styles.editBoxItem}>Описание:</Text>
+                <Text style={styles.editBoxItem}>Описание: </Text>
                 <TextInput
                   style={{
                     height: 40,
@@ -147,7 +147,7 @@ export class EditTable extends React.Component {
                 />
               </View>
               <View style={styles.editBoxItemView}>
-                <Text style={styles.editBoxItem}>Норма (мин.)</Text>
+                <Text style={styles.editBoxItem}>Норма (мин.): </Text>
                 <TextInput
                   style={{
                     height: 40,
@@ -160,7 +160,7 @@ export class EditTable extends React.Component {
                 />
               </View>
               <View style={styles.editBoxItemView}>
-                <Text style={styles.editBoxItem}>№ кабинета:</Text>
+                <Text style={styles.editBoxItem}>№ кабинета: </Text>
                 <TextInput
                   style={{
                     height: 40,
@@ -198,6 +198,8 @@ export class EditTable extends React.Component {
                   </Button>
                 </View>
               </View>
+              </ScrollView>
+              </View>  
             </View>
           </View>
         </Modal>
@@ -206,8 +208,6 @@ export class EditTable extends React.Component {
 }
 export class HiddenBox extends React.Component {
   render() {
-    console.log("ok boomer")
-    console.log(this.props.value)
     if(Object.entries(this.props.value).length === 0 && this.props.value.constructor === Object)
     {
     return (
@@ -215,13 +215,14 @@ export class HiddenBox extends React.Component {
     );
         }else{
           return( <View style={styles.editBoxItemView}>
-            <Text style={styles.editBoxItem}>{this.props.title}</Text>
+            <Text style={{fontSize : 18, color : 'gray'}}>{this.props.title}</Text>
             <TextInput
               style={{
                 height: 40,
                 borderBottomWidth: 1,
                 borderBottomColor: "gray",
-                fontSize: 16
+                fontSize: 16,
+                color : 'gray'
               }}
               editable={false}
               value={this.props.value}
