@@ -71,7 +71,8 @@ export class EditTable extends React.Component {
               backgroundColor: "rgba(0,0,0,0.8)",
               flexDirection: "row",
               justifyContent: "center",
-              alignItems: "center"
+              alignItems: "center",
+              paddingTop : 8
             }}
           >
             <View style={{ width: "75%", backgroundColor: "#f1fff0" }}>
@@ -129,7 +130,7 @@ export class EditTable extends React.Component {
                   />
                 </View>
               </View>
-              <View style={{height : '70%'}}>
+              <View style={{height : 'auto'}}>
               <ScrollView>
               <HiddenBox value={this.state.mk} title={"Номер карты:"}/>
               <HiddenBox value={this.state.fio} title={"ФИО:"}/>
