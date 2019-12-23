@@ -6,7 +6,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  ScrollView
+  ScrollView,
+  Dimensions,
+  PixelRatio
 } from "react-native";
 import { Container, Header, Body } from "native-base";
 import DateTimePicker from "react-native-modal-datetime-picker";
@@ -16,9 +18,41 @@ import Network from "../Utils/Networking";
 import { NavigationHeader } from "../Components/NavigationHeader";
 import { Cell } from "../Components/Cell";
 import { EditTable } from "../Components/EditTable";
+
 export class AdminTimeTable extends React.Component {
   constructor(props) {
     super(props);
+    var screenWidth =
+      Math.round(Dimensions.get("window").width) * PixelRatio.get();
+    var maxDocs = Math.round(screenWidth / 350);
+    this.state = {
+      list: null,
+      loading: true,
+      token: "555",
+      url: "vds.dental-soft.ru",
+      port: "2102",
+      date: new Date()
+        .toISOString()
+        .slice(0, 10)
+        .replace(/-/g, "-"),
+      width: screenWidth,
+      maxDocs: maxDocs,
+      docList: null,
+      docInfo: null,
+      showEditTable: false
+    };
+
+    this.onLayout = this.onLayout.bind(this);
+  }
+
+  onLayout(e) {
+    var screenWidth =
+      Math.round(Dimensions.get("window").width) * PixelRatio.get();
+    var maxDocs = Math.round(screenWidth / 350);
+    this.setState({
+      width: screenWidth,
+      maxDocs: maxDocs
+    });
   }
 
   //устанавливаем stacknavigation header
@@ -27,19 +61,26 @@ export class AdminTimeTable extends React.Component {
       header: null
     };
   };
+
   state = {
     list: null,
     loading: true,
     token: "555",
     url: "vds.dental-soft.ru",
     port: "2102",
-    date: new Date().toISOString().slice(0, 10).replace(/-/g, "-"),
+    date: new Date()
+      .toISOString()
+      .slice(0, 10)
+      .replace(/-/g, "-"),
+    width: 0,
     maxDocs: 2,
     docList: null,
     docInfo: null,
     showEditTable: false
   };
-
+  maxDocsCalc() {
+    return Math.round(this.state.width / 350);
+  }
   dateChangedApiCall(datesl) {
     console.log("ИЗМЕНИЛОСЬ");
     this.setState({ date: datesl.slice(0, 10).replace(/-/g, "-") });
@@ -154,34 +195,51 @@ kab - № кабинета
   */
   //эта функция вызывается после нажатия на кнопку сохранить
   saveChanges(data) {
-
     if (Object.entries(data.mk).length === 0) {
-      data.mk=""
+      data.mk = "";
     }
     if (Object.entries(data.prim).length === 0) {
-      data.prim=""
+      data.prim = "";
     }
     if (Object.entries(data.nvr).length === 0) {
-      data.nvr=""
+      data.nvr = "";
     }
     if (Object.entries(data.kab).length === 0) {
-      data.kab=""
+      data.kab = "";
     }
-    console.log("vivod")
+    console.log("vivod");
     console.log(data);
 
-    Network.EditGrvData(this.state.token,data.doctorId, data.date,data.time,data.mk,data.prim,data.nvr,data.kab,this.state.url,this.state.port)
+    Network.EditGrvData(
+      this.state.token,
+      data.doctorId,
+      data.date,
+      data.time,
+      data.mk,
+      data.prim,
+      data.nvr,
+      data.kab,
+      this.state.url,
+      this.state.port
+    );
     this.setState({ showEditTable: false });
-    this.initialApiCall()
+    this.initialApiCall();
   }
   showEditTable(newState) {
     this.setState(newState);
   }
 
-  deleteCell(data){
-    Network.DeleteGrvData(this.state.token,data.doctorId, data.date,data.time,this.state.url,this.state.port)
+  deleteCell(data) {
+    Network.DeleteGrvData(
+      this.state.token,
+      data.doctorId,
+      data.date,
+      data.time,
+      this.state.url,
+      this.state.port
+    );
     this.setState({ showEditTable: false });
-    this.initApiCall()
+    this.initApiCall();
   }
 
   drawEditTable() {
@@ -240,7 +298,7 @@ kab - № кабинета
       data.dates = dates;
       var r = this.TableFormatter(data);
       result.push(this.generateHeader(partDoctor));
-
+      console.log("!!!!!" + partDoctor.length);
       result.push(
         <FlatList
           data={r}
@@ -332,11 +390,13 @@ kab - № кабинета
             </Body>
           </Header>
           {this.drawEditTable()}
-          <FlatList
-            data={this.generateTable()}
-            renderItem={({ item }) => item}
-            keyExtractor={(item, index) => index}
-          />
+          <View /*onLayout={this.onLayout}*/>
+            <FlatList
+              data={this.generateTable()}
+              renderItem={({ item }) => item}
+              keyExtractor={(item, index) => index}
+            />
+          </View>
         </Container>
       );
   }

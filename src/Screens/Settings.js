@@ -27,17 +27,20 @@ export class Settings extends React.Component {
     };
   };
   async componentDidMount() {
-    var usedLock=await SecureStore.getItemAsync("locking");
-    if(usedLock!=null && usedLock==1){
-      this.setState({useLockScreen:true})
+    var usedLock = await SecureStore.getItemAsync("locking");
+    if (usedLock != null && usedLock == 1) {
+      this.setState({ useLockScreen: true });
     }
-    var type=await SecureStore.getItemAsync("blocktype")
-    if(type!=null){
-      if(type!="touchid"){
-        this.setState({lockScreenMethod:"password"})
+    var type = await SecureStore.getItemAsync("blocktype");
+    if (type != null) {
+      if (type != "touchid") {
+        this.setState({ lockScreenMethod: "password" });
       }
     }
-    
+  }
+
+  onLogOut(){
+    console.log("Выйти из аккаунта");
   }
 
   render() {
@@ -68,10 +71,30 @@ export class Settings extends React.Component {
           onSwitchCallBack={pass => this.setState({ password: pass })}
           activated={false}
         />
+        <Divider text={"Настройки пользователя"} />
+        <LogOut onLogOut={()=>this.onLogOut()}/>
       </ScrollView>
     );
   }
 }
+
+class LogOut extends React.Component {
+  render() {
+    return (
+      <View style={{
+        flexDirection : 'row',
+        justifyContent : 'center',
+        paddingTop : 20,
+        paddingBottom : 30
+      }}>
+        <TouchableOpacity onPress={()=>this.props.onLogOut()}>
+        <Text style={{color : '#a52a2a', fontSize : 30}}>Выйти из аккаунта</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+}
+
 class Divider extends React.Component {
   render() {
     return (
@@ -128,7 +151,7 @@ class EditClinicId extends React.Component {
               />
             </View>
             <View style={{ flexDirection: "column", justifyContent: "center" }}>
-              <EditIcon name="edit-2" size={20} color={"grey"}/>
+              <EditIcon name="edit-2" size={20} color={"grey"} />
             </View>
           </View>
         </View>
@@ -219,16 +242,17 @@ class LockScreenMethod extends React.Component {
           </View>
           <View
             style={{
+              minWidth: 100,
+              maxWidth : 130,
               flex: 0.5,
               flexDirection: "row",
               justifyContent: "flex-end"
             }}
           >
             <Picker
-              note
               mode="dropdown"
               enabled={false}
-              style={{ width: 120 }}
+              style={{ width: 20, color: "gray" }}
               selectedValue={this.props.lockScreenMethod}
               onValueChange={itemValue =>
                 this.props.onSwitchCallBack(itemValue)
@@ -240,7 +264,7 @@ class LockScreenMethod extends React.Component {
                 value="password"
               />
               <Picker.Item
-                style={{ textAlign: "center" }}
+                style={{ textAlign: "center"  }}
                 label="Touch ID"
                 value="touchid"
               />
@@ -264,16 +288,17 @@ class LockScreenMethod extends React.Component {
           </View>
           <View
             style={{
+              minWidth: 100,
+              maxWidth : 130,
               flex: 0.5,
               flexDirection: "row",
               justifyContent: "flex-end"
             }}
           >
             <Picker
-              note
               mode="dropdown"
               textStyle={{ color: "black" }}
-              style={{ width: 120, color: "black" }}
+              style={{ width: 20, color: "black" }}
               selectedValue={this.props.lockScreenMethod}
               onValueChange={itemValue =>
                 this.props.onSwitchCallBack(itemValue)
@@ -305,6 +330,7 @@ class SetPassword extends React.Component {
   };
 
   inputProcessor(val) {
+    val = val.replace(/[^0-9]/g, '')
     if (val.length !== 4) {
       this.setState({ placeholder: val });
     } else {
@@ -314,7 +340,6 @@ class SetPassword extends React.Component {
         activated: false,
         edited: false
       });
-      
     }
   }
 
@@ -360,11 +385,6 @@ class SetPassword extends React.Component {
             <View style={{ paddingTop: 5, paddingBottom: 10 }}>
               <TextInput
                 secureTextEntry={true}
-                когда
-                закончится
-                отладка
-                снять
-                комментирование
                 value={this.state.placeholder}
                 maxLength={4}
                 keyboardType={"numeric"}
@@ -413,11 +433,6 @@ class SetPassword extends React.Component {
             <View style={{ paddingTop: 5, paddingBottom: 10 }}>
               <TextInput
                 secureTextEntry={true}
-                когда
-                закончится
-                отладка
-                снять
-                комментирование
                 value={this.state.placeholder}
                 maxLength={4}
                 keyboardType={"numeric"}

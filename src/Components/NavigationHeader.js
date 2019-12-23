@@ -27,7 +27,8 @@ export class NavigationHeader extends React.Component {
     this.weekday[6] = "(Сб)";
     this.state = {
       isDateTimePickerVisible: false,
-      currentDate: new Date(this.props.date).toISOString()
+      currentDate: new Date(this.props.date).toISOString(),
+      refreshVar : false
     };
   }
 
@@ -40,6 +41,8 @@ export class NavigationHeader extends React.Component {
   };
 
   handleDatePicked = date => {
+    this.setState({refreshVar : !this.state.refreshVar})
+    console.log("NEEEEEEEEEEEEEEEEEW DATE" + date.toISOString())
     this.setState({ currentDate: new Date(date).toISOString() });
     this.props.apiCall(new Date(date).toISOString());
     this.hideDateTimePicker();

@@ -60,7 +60,7 @@ export class EditTable extends React.Component {
     this.setState({ prim: txt });
   }
   onChangeTime(txt) {
-    this.setState({ nvr: txt });
+    this.setState({ nvr: txt.replace(/[^0-9]/g, '')});
   }
   onChangeCabinet(txt) {
     this.setState({ kab: txt });
@@ -156,6 +156,7 @@ export class EditTable extends React.Component {
               <View style={styles.editBoxItemView}>
                 <Text style={styles.editBoxItem}>Норма (мин.): </Text>
                 <TextInput
+                  keyboardType={"numeric"}
                   style={{
                     height: 40,
                     borderBottomWidth: 1,
