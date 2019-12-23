@@ -5,6 +5,7 @@ import {AdminTimeTable} from "../Screens/AdminTimeTable";
 import {AdminDoctorTimeTable} from '../Screens/AdminDoctorTimeTable'
 import {DoctorTimeTable} from '../Screens/DoctorTimeTable'
 import {Settings} from "../Screens/Settings"
+import Login from '../Login';
 const MainNavigator = createStackNavigator(
     {
         Main: 
@@ -26,11 +27,15 @@ const MainNavigator = createStackNavigator(
         Settings:
         {
             screen : Settings
+        },
+        Login:
+        {
+            screen:Login
         }
+    
     },
     {
-        initialRouteName : 'Main',
-        headerLayoutPreset: 'center'
+        initialRouteName : 'Login',
     }
 );
   

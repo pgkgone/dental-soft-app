@@ -9,6 +9,8 @@ import {
 } from "react-native";
 import { Container, Header, Content, Picker, Form, Right } from "native-base";
 import EditIcon from "react-native-vector-icons/Feather";
+import * as SecureStore from "expo-secure-store";
+
 export class Settings extends React.Component {
   state = {
     useLockScreen: false,
@@ -24,7 +26,19 @@ export class Settings extends React.Component {
       headerTintColor: "#fff"
     };
   };
-  async componentDidMount() {}
+  async componentDidMount() {
+    var usedLock=await SecureStore.getItemAsync("locking");
+    if(usedLock!=null && usedLock==1){
+      this.setState({useLockScreen:true})
+    }
+    var type=await SecureStore.getItemAsync("blocktype")
+    if(type!=null){
+      if(type!="touchid"){
+        this.setState({lockScreenMethod:"password"})
+      }
+    }
+    
+  }
 
   render() {
     return (
@@ -300,7 +314,7 @@ class SetPassword extends React.Component {
         activated: false,
         edited: false
       });
-      console.log("пароль установлен!" + val);
+      
     }
   }
 

@@ -176,6 +176,7 @@ export class Lock extends React.Component {
                 ></View>
               </View>
             </View>
+
             <Modal
               animationType="slide"
               transparent={true}
@@ -198,6 +199,7 @@ export class Lock extends React.Component {
                     onPress={async () => {
                       LocalAuthentication.cancelAuthenticate();
                       this.setModalVisible(!this.state.modalVisible);
+                      this.TextInput.autoFocus()
                     }}
                   >
                     <Text
@@ -213,6 +215,7 @@ export class Lock extends React.Component {
                 </View>
               </View>
             </Modal>
+
           </Content>
         </Container>
       );
@@ -303,6 +306,12 @@ const styles = StyleSheet.create({
     marginLeft: 23,
     marginRight: 23,
     width: 25
+  }, 
+  buttonStyle:{
+    width:80,height:80, borderRadius:100,    justifyContent: 'center', alignItems: 'center', backgroundColor:"#A52B2A"
+  },
+  textButtonStyle:{
+    fontSize:22
   }
 });
 module.exports = Lock;

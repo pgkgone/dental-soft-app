@@ -17,7 +17,7 @@ import CancelIcons from "react-native-vector-icons/Entypo";
 
 export class EditTable extends React.Component {
   state = {
-    visitNum: "",
+    visitNum: this.props.data.visitNum,
     time: this.props.data.time,
     doctorId: this.props.data.doctorId,
     date: this.props.data.date,
@@ -26,17 +26,23 @@ export class EditTable extends React.Component {
     nvr: "",
     kab: "",
     token: this.props.data.token,
-    loading: true
+    loading: true,
+    url: this.props.data.url,
+    port: this.props.data.port
   };
 
   async getData() {
+    console.log(this.state)
     return await Network.GetGrvData(
       this.state.token,
       this.state.doctorId,
       this.state.date,
-      this.state.time
+      this.state.time,
+      this.state.url,
+      this.state.port
     );
   }
+  
   async componentDidMount() {
     var response = await this.getData();
     console.log(response);
@@ -98,7 +104,7 @@ export class EditTable extends React.Component {
                     name="trash"
                     size={22}
                     color={"white"}
-                    onPress={() => this.props.deleteFunc()}
+                    onPress={() =>{this.props.deleteFunc(this.state)}}
                   />
                 </View>
                 <View

@@ -4,15 +4,13 @@ import {
   View,
   FlatList,
   StyleSheet,
-  TouchableOpacity,
-  Dimensions 
+  TouchableOpacity
 } from "react-native";
 import { Container, Header, Body, Form } from "native-base";
 import { NavigationHeader } from "../Components/NavigationHeader";
 import { Cell } from "../Components/Cell";
 import { EditTable } from "../Components/EditTable";
 import Network from "../Utils/Networking";
-import { ScrollView } from "react-native-gesture-handler";
 export class DoctorTimeTable extends React.Component {
   static navigationOptions = ({ navigation }) => {
     return {
@@ -24,33 +22,40 @@ export class DoctorTimeTable extends React.Component {
     loading: true,
     dates: null,
     listOfCells: null,
-    doctorId: 4,
+    doctorId: 2, //через пропс обязательно получаем
     date: new Date().toISOString(),
-    numColumns: 3
+    numColumns: 3,
+    token : "555", //через пропс обязательно получаем
+    url:"vds.dental-soft.ru",
+    port:"2102"
   };
 
+  //Заменяем все в строках
   replaceAll(str, find, replace) {
     return str.replace(new RegExp(find, "g"), replace);
   }
-
+  
   async componentDidMount() {
     //TODO ограничитель
+    //Вызываем загрузку данных, ждем и показываем экран пользователю
     await this.initApiCall();
     this.setState({ loading: false });
   }
 
   async initApiCall() {
     var times = await Network.GetDatesAll(
-      "555",
+      this.state.token, //НА ПРОПС!!!!!
       this.state.doctorId,
-      this.state.date.slice(0, 10).replace(/-/g, "-")
+      this.state.date.slice(0, 10).replace(/-/g, "-"),
+      this.state.url,
+      this.state.port
     );
     var formatted = times.rows.row
       .map(item => {
-        return this.replaceAll(item.name, "-", ".");
+        return item.name;
       })
-      .slice(0, this.state.numColumns);
-    console.log(formatted);
+      .slice(0, this.state.numColumns); //Показываем пока только по 3 даты!
+    console.log("GOTTED DAYS:"+formatted);
     this.tableHeader = (
       <FlatList
         data={formatted.map(item => {
@@ -59,36 +64,39 @@ export class DoctorTimeTable extends React.Component {
         })}
         numColumns={formatted.length}
         style={{ flex: 1, alignSelf: "stretch", backgroundColor: "#a52b2a" }}
-        renderItem={({ item }) => <Text style={styles.header}>{item.key}</Text>}
+        renderItem={({ item }) => <Text style={styles.header}>{this.replaceAll(item.key,"-",".")}</Text>}
       />
     );
-
+    //Указываем даты
     this.setState({ dates: formatted });
+    //Формируем объект, который отошлём в TableFormatter
     var data = {};
     var dates = [];
     for (var i = 0; i < formatted.length; i++) {
       var pa = await Network.GetTimesAll(
-        "555",
+        this.state.token,
         this.state.doctorId,
-        formatted[i]
+        formatted[i],
+        this.state.url,
+        this.state.port
       );
       var form = pa.rows.row.map(item => {
         var p = null;
         if (Object.entries(item.id).length === 0) {
           p = {
-            visitNum: "",
+            visitNum: "", //Цель визита 
             time: item.name,
             doctorId: this.state.doctorId,
             date: formatted[i],
-            name: ""
+            name: "" //Имя пациента
           };
         } else {
           p = {
-            visitNum: item.id.split(",")[1],
+            visitNum: item.id.split(",")[1], //Цель визита 
             time: item.name,
             doctorId: this.state.doctorId,
             date: formatted[i],
-            name: item.id.split(", ")[0]
+            name: item.id.split(", ")[0] //Имя пациента
           };
         }
         return p;
@@ -100,6 +108,7 @@ export class DoctorTimeTable extends React.Component {
     }
     data.dates = dates;
     this.setState({ listOfCells: this.TableFormatter(data) });
+    console.log(this.state.listOfCells)
   }
 
   dateChangedApiCall(datesl) {
@@ -113,10 +122,8 @@ export class DoctorTimeTable extends React.Component {
         Метод приводящий массив json'ов к нужному виду (массив чередующихся по неделям ячеек)
     */
   TableFormatter(data) {
-    console.log("cyka");
     var Cells = [];
     var listOfColumns = data.dates.map(item => item.cells);
-    console.log("here");
     var longestArray = Math.max.apply(
       null,
       listOfColumns.map(item => item.length)
@@ -152,39 +159,55 @@ export class DoctorTimeTable extends React.Component {
 
   //эта функция вызывается после нажатия на кнопку сохранить
   saveChanges(data) {
-    console.log(data)
-    //Network.EditGrvData("555",data.doctorId, data.date,data.time,data.mk,data.prim,data.nvr,data.kab)
-    console.log("cyka")
+
+    if (Object.entries(data.mk).length === 0) {
+      data.mk=""
+    }
+    if (Object.entries(data.prim).length === 0) {
+      data.prim=""
+    }
+    if (Object.entries(data.nvr).length === 0) {
+      data.nvr=""
+    }
+    if (Object.entries(data.kab).length === 0) {
+      data.kab=""
+    }
+    console.log("vivod")
+    console.log(data);
+
+    Network.EditGrvData(this.state.token,data.doctorId, data.date,data.time,data.mk,data.prim,data.nvr,data.kab,this.state.url,this.state.port)
     this.setState({ showEditTable: false });
     this.initApiCall()
   }
   showEditTable(newState) {
     this.setState(newState);
   }
-  
-  deleteCell(){
 
+  deleteCell(data){
+    console.log(data)
+    Network.DeleteGrvData(this.state.token,data.doctorId, data.date,data.time,this.state.url,this.state.port)
+    this.setState({ showEditTable: false });
+    this.initApiCall()
   }
-  
   drawEditTable() {
-    console.log(this.state.modalData)
-    console.log("Clicked")
-    if(this.state.modalData === undefined){
-      console.log("a")
-    } else{
+    if (this.state.modalData === undefined) {
+      console.log("Not Loaded");
+    } else {
       if (this.state.showEditTable === true) {
         return (
           <EditTable
-            deleteFun={() => this.deleteCell()}
+            deleteFunc={ data=> this.deleteCell(data)}
             closeFun={() => this.setState({ showEditTable: false })}
-            saveFun={(data) => this.saveChanges(data)}
+            saveFun={data => this.saveChanges(data)}
             data={{
-              visitNum:this.state.modalData.name,
-              time:this.state.modalData.time,
-              doctorId:this.state.doctorId,
-              date:this.state.modalData.date,
-              prim:this.state.modalData.visitNum,
-              token:"555"
+              visitNum: this.state.modalData.visitNum,
+              time: this.state.modalData.time,
+              doctorId: this.state.doctorId,
+              date: this.state.date.slice(0, 10).replace(/-/g, "-"),
+              prim: this.state.modalData.prim,
+              token: this.state.token,
+              url: this.state.url,
+              port: this.state.port
             }}
           />
         );
@@ -221,8 +244,7 @@ export class DoctorTimeTable extends React.Component {
             </Body>
           </Header>
           {this.drawEditTable()}
-          <ScrollView horizontal={true} style={styles.container}>
-            <View style={{width : Math.round(Dimensions.get('window').width / 3 * 5)}}>
+          <View style={styles.container}>
             <FlatList
               data={this.state.listOfCells}
               keyExtractor={item => item.key}
@@ -230,7 +252,6 @@ export class DoctorTimeTable extends React.Component {
               ListHeaderComponent={this.tableHeader}
               style={{
                 flex: 1,
-                width : Math.round(Dimensions.get('window').width),
                 alignSelf: "stretch",
                 backgroundColor: "#f1fff0"
               }}
@@ -278,8 +299,7 @@ export class DoctorTimeTable extends React.Component {
                 }
               }}
             />
-            </View>
-          </ScrollView>
+          </View>
         </Container>
       );
   }

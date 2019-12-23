@@ -13,16 +13,17 @@ import {
   Form,
   Item,
   Input,
-  Label,Toast
+  Label,
+  Toast
 } from "native-base";
 import { Alert, StyleSheet, View } from "react-native";
 import * as FileSystem from "expo-file-system";
 import * as Font from "expo-font";
 import Constants from "expo-constants";
 import * as SecureStore from "expo-secure-store";
-import User from "./Utils/Classes/User";
-import fetch from './Utils/fetchWithTimeout'
-import Network from './Utils/Networking'
+import fetch from "./Utils/fetchWithTimeout";
+import Network from "./Utils/Networking";
+
 
 
 export class Login extends React.Component {
@@ -34,19 +35,43 @@ export class Login extends React.Component {
     loading: true,
     username: "",
     password: "",
+    first: false,
+    cid:""
+  };
+
+  static navigationOptions = ({ navigation }) => {
+    return {
+      title: "Авторизация",
+      headerStyle: {
+        backgroundColor: "#a52b2a"
+      },
+      headerTintColor: "#fff"
+    };
   };
 
   async login() {
-    console.log("logining")
+    if(this.state.username=="" || this.state.password=="" || this.state.cid==""){
+      Alert.alert(
+        "Неверные данные для входа",
+        "Пожалуйста, заполните все поля",
+        [{ text: "OK", onPress: () => console.log("OK Pressed") }],
+        { cancelable: false }
+      );
+      return
+    }
     var url =
-      "https://online.dental-soft.ru/docs_test.php?ID=demo&doc_name_demo=" +
+      "https://online.dental-soft.ru/docs_test.php?ID="+this.state.cid+"&doc_name_demo=" +
       this.state.username +
       "&doc_pass_demo=" +
       this.state.password;
-
-    let data = await fetch(url, {
-      method: "POST"
-    },5000)
+    console.log(url)
+    let data = await fetch(
+      url,
+      {
+        method: "POST"
+      },
+      5000
+    )
       .then(response => response.text())
       .catch(err => {
         Alert.alert(
@@ -58,7 +83,7 @@ export class Login extends React.Component {
       });
     //var u = new User(data)
     //console.log(u.getToken())
-    if (data.includes("неправильный логин или пароль")) {
+    if (data.includes("неправильный логин или пароль") || data.includes("не указано имя пользователя")) {
       Alert.alert(
         "Ошибка авторизации",
         "Неправильный логин или пароль",
@@ -66,35 +91,36 @@ export class Login extends React.Component {
         { cancelable: false }
       );
     } else {
-      SecureStore.setItemAsync(
+      await SecureStore.setItemAsync(
         "loginpass",
         this.state.username + ":" + this.state.password
       );
-      SecureStore.setItemAsync("data", data);
-      console.log("ok auth")
-      var d = data.split(":")
-      if(d[0]=="registry"){
+      await SecureStore.setItemAsync("data", data);
+      if(this.state.first){
+        await SecureStore.setItemAsync("cid", this.state.cid)
+      }
+      console.log("ok auth");
+      var d = data.split(":");
+      console.log(d)
+      if (d[0] == "registry") {
         //GOTO REGISTRY SCREEN
-        console.log("Перед нами администратор")
+        console.log("Перед нами администратор");
+        return(this.props.navigation.navigate("AdminTimeTable", {data : this.data}));
       } else {
         //GOTO DOCTOR SCREEN
-        console.log("Перед нами доктор")
+        console.log("Перед нами доктор");
+        return(this.props.navigation.navigate("DoctorTimeTable", {data : this.data}));
       }
-      /*
-      Toast.show({
-        text: "aaaa",
-      })
-      */
-    console.log("toaster")
-    console.log(await Network.GetDates("555",1))
+
+      //Если вдруг пригодится читать из файла
       //filename = (await FileSystem.documentDirectory) + "tempname" + ".txt";
       //FileSystem.writeAsStringAsync(filename , data)
       ///var rez = await FileSystem.readAsStringAsync(filename);
-      //console.log(rez);
     }
   }
 
-  async checkSavedLoginPass(){
+  //Проверяем существование сохраненного логина и пароля
+  async checkSavedLoginPass() {
     var d = await SecureStore.getItemAsync("loginpass");
     if (d != null) {
       if (d.includes(":")) {
@@ -103,11 +129,24 @@ export class Login extends React.Component {
       }
     }
   }
+
+  //Проверяем на первый запуск, по необходимости запрашиваем у пользователя id клиники
+  async isFirstLaunch() {
+    var cid = await SecureStore.getItemAsync("cid"); //clinic id
+    //Если первый запуск, то он равен null
+    if (cid == null) {
+      this.setState({ first: true });
+    } else{
+      this.setState({cid:cid})
+    }
+  }
+
   async componentDidMount() {
     await Font.loadAsync({
       Roboto_medium: require("native-base/Fonts/Roboto_medium.ttf")
     });
-    await this.checkSavedLoginPass()
+    await this.isFirstLaunch();
+    await this.checkSavedLoginPass();
     this.setState({ loading: false });
   }
 
@@ -117,37 +156,39 @@ export class Login extends React.Component {
     } else {
       return (
         <Container>
-          <Header style={this.styles.header}>
-            <Left style={{ flex: 1 }}></Left>
-            <Body style={{ flex: 1 }}>
-              <Title style={this.styles.title}>Авторизация</Title>
-            </Body>
-            <Right style={{ flex: 1 }}></Right>
-          </Header>
           <Content style={this.styles.content} padder>
             <Form>
               <Item floatingLabel>
-                <Label>Username</Label>
+                <Label>Имя пользователя</Label>
                 <Input
                   onChangeText={v => this.setState({ username: v })} //(v)=>this.setState({"username":v}
                   value={this.state.username}
                 />
               </Item>
               <Item floatingLabel>
-                <Label>Password</Label>
+                <Label>Пароль</Label>
                 <Input
                   value={this.state.password}
                   secureTextEntry
                   onChangeText={v => this.setState({ password: v })}
                 />
               </Item>
+              {this.state.first ? (
+                <Item floatingLabel>
+                  <Label>ID клиники</Label>
+                  <Input
+                    value={this.state.cid}
+                    onChangeText={v => this.setState({ cid: v })}
+                  />
+                </Item>
+              ) :<View></View>}
               <Button
                 transparent
                 last
                 style={this.styles.loginBtn}
                 onPress={() => this.login()}
               >
-                <Text style={this.styles.loginText}>LOGIN</Text>
+                <Text style={this.styles.loginText}>Вход</Text>
               </Button>
             </Form>
           </Content>
@@ -165,7 +206,8 @@ export class Login extends React.Component {
       color: "#ffffff"
     },
     content: {
-      backgroundColor: "#F1FFF0"
+      backgroundColor: "#F1FFF0",
+      marginTop: 5
     },
     loginBtn: {
       marginTop: 12,

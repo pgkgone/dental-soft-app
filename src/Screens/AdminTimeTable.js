@@ -5,46 +5,18 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
-  Image
+  Image,
+  ScrollView
 } from "react-native";
 import { Container, Header, Body } from "native-base";
 import DateTimePicker from "react-native-modal-datetime-picker";
 import Icon2 from "react-native-vector-icons/FontAwesome";
 import * as Font from "expo-font";
-import Network from '../Utils/Networking'
-import {NavigationHeader} from "../Components/NavigationHeader"
-/*
-
-    формат данных для вывода
-
-    listOfCells = [{
-          name, - Имя Фамилия доктора
-          doctorId - id доктора
-        },
-        
-        ...
-        ]  
-    
-    пример реализации
-
-    var arrayOfDocID : [doc_id] = GetDocsAll(token, date)
-    var listOfCells = arrayOfDocID.map((item) => {
-        data = {
-          doctorId : item,
-          name :  GetFio(token, item) //async?
-        }
-      });
-
-    API интеграция
-
-    initialApiCall(date) - вызов API на сегодняшнюю дату
-    dateChangedApiCall(date) - callback для datepicker'a вызывает API при изменении даты пользователем
-
-    по клику на ячейку вызывается AdminDoctorTimeTable с параметрами name (используется для быстрого рендера header'a), data, doctorId
-  */
-
+import Network from "../Utils/Networking";
+import { NavigationHeader } from "../Components/NavigationHeader";
+import { Cell } from "../Components/Cell";
+import { EditTable } from "../Components/EditTable";
 export class AdminTimeTable extends React.Component {
-
   constructor(props) {
     super(props);
   }
@@ -55,154 +27,321 @@ export class AdminTimeTable extends React.Component {
       header: null
     };
   };
-  state={
-    listOfCells:null,
-    curr_date:new Date().toISOString()
-  }
-  /*
-        Сортирует врачей в алфавитном порядке 
-    */
+  state = {
+    list: null,
+    loading: true,
+    token: "555",
+    url: "vds.dental-soft.ru",
+    port: "2102",
+    date: new Date().toISOString().slice(0, 10).replace(/-/g, "-"),
+    maxDocs: 2,
+    docList: null,
+    docInfo: null,
+    showEditTable: false
+  };
 
-  TableFormatter() {
-    return this.data.sort(function(a, b) {
-      if (a.name < b.name) {
-        return -1;
-      }
-      if (a.name > b.name) {
-        return 1;
-      }
-      return 0;
+  dateChangedApiCall(datesl) {
+    console.log("ИЗМЕНИЛОСЬ");
+    this.setState({ date: datesl.slice(0, 10).replace(/-/g, "-") });
+    this.initialApiCall();
+  }
+
+  async initialApiCall() {
+    console.log("Start Loading");
+    var docList = await Network.GetDocsAll(
+      this.state.token,
+      this.state.date.slice(0, 10).replace(/-/g, "-"),
+      this.state.url,
+      this.state.port
+    );
+
+    var formatted = docList.rows.row.map(item => {
+      return { id: item.id, name: item.name };
     });
-  }
+    console.log(docList);
+    console.log("Получил список докторов \nПолучаю расписание для них");
+    var docData = [];
+    for (var i = 0; i < formatted.length; i++) {
+      var response = await Network.GetTimesAll(
+        this.state.token,
+        formatted[i].id,
+        this.state.date.slice(0, 10).replace(/-/g, "-"),
+        this.state.url,
+        this.state.port
+      ).catch(err => {
+        console.log(err);
+      });
 
-  /*
-      тут нужно обновлять this.listOfCells т.к дата таблицы была изменена
-      !возможно не будет обновлять т.к. не является переменной state'a!
-    */
-  dateChangedApiCall(date) { 
-    console.log("Дата поменялась нужно вызвать Api " + date);
-    this.setState({curr_date:date})
-    console.log(this.state.curr_date)
-    this.initialApiCall(date.slice(0, 10).replace(/-/g, "-"))
+      docData.push(
+        response.rows.row.map(item => {
+          var p = null;
+          if (Object.entries(item.id).length === 0) {
+            p = {
+              visitNum: "", //Цель визита
+              time: item.name,
+              name: "",
+              doctorId: formatted[i].id
+            };
+          } else {
+            p = {
+              visitNum: item.id.split(",")[1], //Цель визита
+              time: item.name,
+              name: item.id.split(", ")[0], //Имя пациента
+              doctorId: formatted[i].id
+            };
+          }
+          return p;
+        })
+      );
+    }
+    console.log("Получил все расписания\nТеперь время нормализовать пары");
+    this.setState({ docList: formatted, docInfo: docData });
+    this.setState({ loading: false });
   }
-
-  /*
-      должен вызываться в конструкторе и возвращать this.props.data
-    */
-   async initialApiCall(date) {
-    var response =await Network.GetDocsAll("555",date)
-    this.data = response.rows.row.map((item) => {data={doctorId:item.id, name:item.name};return data})
-    this.setState({listOfCells:this.TableFormatter()})  
-  }
-
 
   async componentDidMount() {
     await Font.loadAsync({
       Roboto_medium: require("native-base/Fonts/Roboto_medium.ttf")
     });
-    console.log("test")
-    await this.initialApiCall(this.state.curr_date.slice(0, 10).replace(/-/g, "-"))
-    this.setState({ loading: false });
+    await this.initialApiCall();
+  }
+
+  TableFormatter(data) {
+    var Cells = [];
+    var listOfColumns = data.dates.map(item => item.cells);
+    var longestArray = Math.max.apply(
+      null,
+      listOfColumns.map(item => item.length)
+    );
+    for (var i = 0; i < longestArray * data.dates.length; i++) {
+      Cells.push({
+        key: i,
+        name: "",
+        visitNum: "",
+        time: ""
+      });
+    }
+    for (var i = 0; i < listOfColumns.length; i++) {
+      listOfColumns[i].map((item, index) => {
+        var newCell = {
+          key: Cells[i + listOfColumns.length * index].key,
+          name: item.name,
+          visitNum: item.visitNum,
+          time: item.time,
+          date: item.date,
+          doctorId: item.doctorId
+        };
+        Cells[i + listOfColumns.length * index] = newCell;
+      });
+    }
+    return Cells;
+  }
+
+  seEditTable() {
+    this.setState({
+      showEditTable: false
+    });
+  }
+
+  /*
+EditGrvData(string tokenId, doc_id, datez, timez, mk, prim, nvr, kab); - редактируем запись на приём
+к врачу doc_id на дату datez, и время timez
+где
+mk- номер карты
+prim - примечание
+nvr – норма времени на приём
+kab - № кабинета
+  */
+  //эта функция вызывается после нажатия на кнопку сохранить
+  saveChanges(data) {
+
+    if (Object.entries(data.mk).length === 0) {
+      data.mk=""
+    }
+    if (Object.entries(data.prim).length === 0) {
+      data.prim=""
+    }
+    if (Object.entries(data.nvr).length === 0) {
+      data.nvr=""
+    }
+    if (Object.entries(data.kab).length === 0) {
+      data.kab=""
+    }
+    console.log("vivod")
+    console.log(data);
+
+    Network.EditGrvData(this.state.token,data.doctorId, data.date,data.time,data.mk,data.prim,data.nvr,data.kab,this.state.url,this.state.port)
+    this.setState({ showEditTable: false });
+    this.initialApiCall()
+  }
+  showEditTable(newState) {
+    this.setState(newState);
+  }
+
+  deleteCell(data){
+    Network.DeleteGrvData(this.state.token,data.doctorId, data.date,data.time,this.state.url,this.state.port)
+    this.setState({ showEditTable: false });
+    this.initApiCall()
+  }
+
+  drawEditTable() {
+    if (this.state.modalData === undefined) {
+      console.log("Not Loaded");
+    } else {
+      if (this.state.showEditTable === true) {
+        return (
+          <EditTable
+            deleteFunc={() => this.deleteCell()}
+            closeFun={() => this.setState({ showEditTable: false })}
+            saveFun={data => this.saveChanges(data)}
+            data={{
+              visitNum: this.state.modalData.visitNum,
+              time: this.state.modalData.time,
+              doctorId: this.state.modalData.doctorId,
+              date: this.state.date,
+              prim: this.state.modalData.prim,
+              token: this.state.token,
+              url: this.state.url,
+              port: this.state.port
+            }}
+          />
+        );
+      }
+    }
+  }
+
+  generateHeader(data) {
+    return (
+      <FlatList
+        data={data}
+        numColumns={data.length}
+        scrollEnabled={false}
+        style={{ flex: 1, textAlign: "center", backgroundColor: "#a52b2a" }}
+        renderItem={({ item }) => (
+          <Text style={styles.header}>{item.name}</Text>
+        )}
+      />
+    );
+  }
+
+  generateTable() {
+    var result = [];
+    for (var i = 0; i < this.state.docList.length; i += this.state.maxDocs) {
+      var partDoctor = this.state.docList.slice(i, i + this.state.maxDocs);
+      var partInfo = this.state.docInfo.slice(i, i + this.state.maxDocs);
+      var data = {};
+      var dates = [];
+      for (var j = 0; j < partDoctor.length; j++) {
+        dates.push({
+          date: partDoctor[j].name,
+          cells: partInfo[j]
+        });
+      }
+      data.dates = dates;
+      var r = this.TableFormatter(data);
+      result.push(this.generateHeader(partDoctor));
+
+      result.push(
+        <FlatList
+          data={r}
+          keyExtractor={item => item.key}
+          numColumns={partDoctor.length}
+          ListHeaderComponent={this.tableHeader}
+          scrollEnabled={false}
+          style={{
+            flex: 1,
+            alignSelf: "stretch",
+            backgroundColor: "#f1fff0"
+          }}
+          renderItem={({ item }) => {
+            if (item.time === "") {
+              return (
+                <View
+                  style={{
+                    flex: 1,
+                    flexDirection: "row",
+                    borderWidth: 0.5,
+                    borderColor: "black"
+                  }}
+                >
+                  <Cell
+                    name={item.name}
+                    time={item.time}
+                    visitNum={item.visitNum}
+                  />
+                </View>
+              );
+            } else {
+              return (
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    flexDirection: "row",
+                    borderWidth: 0.5,
+                    borderColor: "black"
+                  }}
+                  onPress={() =>
+                    this.setState({
+                      showEditTable: true,
+                      modalData: item
+                    })
+                  }
+                >
+                  <Cell
+                    name={item.name}
+                    time={item.time}
+                    visitNum={item.visitNum}
+                  />
+                </TouchableOpacity>
+              );
+            }
+          }}
+        />
+      );
+    }
+    return result;
   }
   render() {
-    return (
-      <Container>
-        <Header
-          androidStatusBarColor="#a52b2a"
-          style={{
-            flexDirection: "row",
-            justifyContent: "center",
-            backgroundColor: "#a52b2a"
-          }}
-        >
-          <Body
+    if (this.state.loading) {
+      return <View></View>;
+    } else
+      return (
+        <Container>
+          <Header
+            androidStatusBarColor="#a52b2a"
             style={{
               flexDirection: "row",
               justifyContent: "center",
               backgroundColor: "#a52b2a"
             }}
           >
-            <NavigationHeader date={this.state.curr_date} apiCall={date => this.dateChangedApiCall(date)} navigateToSettings={() => this.props.navigation.navigate("Settings")}/>
-          </Body>
-        </Header>
-        <View style={styles.container}>
-          <FlatList
-            data={this.state.listOfCells}
-            keyExtractor={item => item.doctorId}
-            numColumns={1}
-            style={{
-              flex: 1,
-              alignSelf: "stretch",
-              backgroundColor: "#f1fff0"
-            }}
-            renderItem={({ item }) => {
-              var dataToSend = {
-                data: {
-                  name: item.name,
-                  doctorId: item.doctorId,
-                  date: this.state.curr_date
+            <Body
+              style={{
+                flexDirection: "row",
+                justifyContent: "center",
+                backgroundColor: "#a52b2a"
+              }}
+            >
+              <NavigationHeader
+                apiCall={date => this.dateChangedApiCall(date)}
+                navigateToSettings={() =>
+                  this.props.navigation.navigate("Settings")
                 }
-              };
-              return (
-                <TouchableOpacity
-                  onPress={() =>
-                    this.props.navigation.navigate(
-                      "AdminDoctorTimeTable",
-                      dataToSend
-                    )
-                  }
-                >
-                  <Cell name={item.name} />
-                </TouchableOpacity>
-              );
-            }}
+                date={this.state.date}
+              />
+            </Body>
+          </Header>
+          {this.drawEditTable()}
+          <FlatList
+            data={this.generateTable()}
+            renderItem={({ item }) => item}
+            keyExtractor={(item, index) => index}
           />
-        </View>
-      </Container>
-    );
+        </Container>
+      );
   }
 }
 
-class Cell extends React.Component {
-  render() {
-    return (
-      <View
-        style={{
-          flex: 1,
-          flexDirection: "row",
-          borderWidth: 0.5,
-          borderColor: "black",
-          height: "100%"
-        }}
-      >
-        <View style={{ flex: 1, padding: 20, flexDirection: "row" }}>
-          <View
-            style={{
-              width: "90%",
-              alignSelf: "center",
-              flexDirection: "column",
-              justifyContent: "center"
-            }}
-          >
-            <Text style={styles.item}>{this.props.name}</Text>
-          </View>
-          <View
-            style={{
-              alignSelf: "center",
-              flexDirection: "column",
-              justifyContent: "center"
-            }}
-          >
-            <Image
-              style={{ width: 28, height: 28 }}
-              source={require("../Resources/right-arrow.png")}
-            />
-          </View>
-        </View>
-      </View>
-    );
-  }
-}
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -212,7 +351,17 @@ const styles = StyleSheet.create({
   item: {
     color: "#509ffa",
     textDecorationLine: "underline",
-    flex: 1,
-    fontSize: 18
+    textAlign: "center",
+    flex: 0.5,
+    fontSize: 13
+  },
+  header: {
+    color: "white",
+    flexDirection: "row",
+    textAlign: "center",
+    flex: 0.5,
+    padding: 10,
+    fontSize: 18,
+    height: 44
   }
 });

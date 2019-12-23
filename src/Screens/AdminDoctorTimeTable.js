@@ -94,9 +94,6 @@ export class AdminDoctorTimeTable extends React.Component {
     this.setState({ showEditTable: false });
     this.initialApiCall()
   }
-  deleteCell() {
-
-  }
 
   async initialApiCall() {
     var response = await Network.GetTimesAll(
@@ -140,9 +137,7 @@ export class AdminDoctorTimeTable extends React.Component {
       if (this.state.showEditTable === true) {
         return (
           <EditTable
-            deleteFunc={() => this.deleteCell()}
-            closeFun={() => this.setState({ showEditTable: false })}
-            saveFun={(data) => this.saveChanges(data)}
+            closeFun={(data) => this.saveChanges(data)}
             data={{
               visitNum:this.state.modalData.visitNum,
               time:this.state.modalData.time,
