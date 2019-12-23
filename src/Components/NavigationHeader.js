@@ -30,6 +30,7 @@ export class NavigationHeader extends React.Component {
       currentDate: new Date(this.props.date).toISOString(),
       refreshVar : false
     };
+    console.log(this.props.date + "initial date");
   }
 
   showDateTimePicker = () => {

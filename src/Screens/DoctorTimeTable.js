@@ -23,12 +23,20 @@ export class DoctorTimeTable extends React.Component {
     dates: null,
     listOfCells: null,
     doctorId: 2, //через пропс обязательно получаем
-    date: new Date().toISOString(),
+    date: this.getISODate(),
     numColumns: 3,
     token : "555", //через пропс обязательно получаем
     url:"vds.dental-soft.ru",
     port:"2102"
   };
+
+  getISODate() {
+    var date = new Date(); // Or the date you'd like converted.
+    var isoDate = new Date(
+      date.getTime() - date.getTimezoneOffset() * 60000
+    ).toISOString();
+    return isoDate;
+  }
 
   //Заменяем все в строках
   replaceAll(str, find, replace) {

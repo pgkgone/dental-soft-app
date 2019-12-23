@@ -31,8 +31,7 @@ export class AdminTimeTable extends React.Component {
       token: "555",
       url: "vds.dental-soft.ru",
       port: "2102",
-      date: new Date()
-        .toISOString()
+      date: this.getISODate()
         .slice(0, 10)
         .replace(/-/g, "-"),
       width: screenWidth,
@@ -44,7 +43,13 @@ export class AdminTimeTable extends React.Component {
 
     this.onLayout = this.onLayout.bind(this);
   }
-
+  getISODate() {
+    var date = new Date(); // Or the date you'd like converted.
+    var isoDate = new Date(
+      date.getTime() - date.getTimezoneOffset() * 60000
+    ).toISOString();
+    return isoDate;
+  }
   onLayout(e) {
     var screenWidth =
       Math.round(Dimensions.get("window").width) * PixelRatio.get();
@@ -68,8 +73,7 @@ export class AdminTimeTable extends React.Component {
     token: "555",
     url: "vds.dental-soft.ru",
     port: "2102",
-    date: new Date()
-      .toISOString()
+    date: this.getISODate()
       .slice(0, 10)
       .replace(/-/g, "-"),
     width: 0,
