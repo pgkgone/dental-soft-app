@@ -65,10 +65,11 @@ export class Settings extends React.Component {
   }
   async onLogOut() {
     await SecureStore.deleteItemAsync("loginpass");
+    await SecureStore.deleteItemAsync("cid");
     await SecureStore.deleteItemAsync("locking");
     await SecureStore.deleteItemAsync("blocktype");
     await SecureStore.deleteItemAsync("lockpass");
-    return this.props.navigation.navigate("Login", { data: this.data });
+    return this.props.navigation.navigate("Login", { extra:"LOGOUT" });
   }
 
   changedMethod(data) {

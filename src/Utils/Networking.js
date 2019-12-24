@@ -1,9 +1,12 @@
+import {
+  Alert
+} from "react-native";
 import * as soap from "soap-everywhere";
 class Network {
   //TODO PORT SUPPORT
 
   static url = "http://vds.dental-soft.ru:2102/?wsdl";
-  static timeout = 3000;
+  static timeout = 7000;
   static getUrl(url, port) {
     return "http://" + url + ":" + port + "/?wsdl";
   }
@@ -184,6 +187,48 @@ class Network {
     });
   }
 
+
+  static async EditGrvData2(
+    token,
+    id,
+    date,
+    time,
+    mk,
+    prim,
+    nvr,
+    kab,
+    url,
+    port
+  ){
+    var body ='<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><EditGrvData xmlns="urn:grvssl"><tokenId>'+token+'</tokenId><docId>'+id+'</docId><datez>'+date+'</datez><timez>'+time+'</timez><mk>'+mk+'</mk><prim>'+prim+'</prim><nvr>'+nvr+'</nvr><kab>'+kab+'</kab></EditGrvData></Body></Envelope>'
+    var data = await fetch(
+    this.getUrl(url, port),
+    {
+      method: "POST",
+      body:body
+    },
+    7000
+  )
+    .then(response => response.text())
+    .catch(e => {
+      Alert.alert(
+        "Ошибка",
+        "Превышен лимит ожидания ответа от сервера",
+        [{ text: "OK", onPress: () => {} }],
+        { cancelable: true }
+      );
+    });
+    console.log(data.includes("Нет такого № кабинета"))
+    if(data.includes("Нет такого № кабинета")){
+      console.log("тут должен быть алерт")
+      Alert.alert(
+        "Ошибка",
+        "Нет такого кабинета",
+        [{ text: "OK", onPress: () => {} }],
+        { cancelable: true }
+      );
+    }
+  }
   static async EditGrvData(
     token,
     id,

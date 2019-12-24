@@ -8,7 +8,8 @@ import {
   Image,
   ScrollView,
   Dimensions,
-  PixelRatio
+  PixelRatio,
+  Alert,BackHandler
 } from "react-native";
 import { Container, Header, Body } from "native-base";
 import DateTimePicker from "react-native-modal-datetime-picker";
@@ -39,72 +40,41 @@ export class AdminTimeTable extends React.Component {
     docList: null,
     docInfo: null,
     showEditTable: false,
-    screenWidth:Math.round(Dimensions.get("window").width) * PixelRatio.get(),
-    maxDocs: Math.round(Math.round(Dimensions.get("window").width) * PixelRatio.get() / 350),
+    screenWidth: Math.round(Dimensions.get("window").width) * PixelRatio.get(),
+    maxDocs: Math.round(
+      (Math.round(Dimensions.get("window").width) * PixelRatio.get()) / 350
+    ),
+    screens: new Map([
+      [
+        Math.round(
+          (Math.round(Dimensions.get("window").width) * PixelRatio.get()) / 350
+        ),
+        null
+      ],
+      [
+        Math.round(
+          (Math.round(Dimensions.get("window").height) * PixelRatio.get()) / 350
+        ),
+        null
+      ]
+    ])
   };
 
   onLayout(e) {
-    console.log("here")
+    console.log("here");
     var screenWidth =
       Math.round(Dimensions.get("window").width) * PixelRatio.get();
     var maxDocs = Math.round(screenWidth / 350);
-    console.log(maxDocs)
-    this.generateTable()
-    this.setState({maxDocs:maxDocs})
+    console.log(maxDocs);
+    this.generateTable();
+    this.setState({ maxDocs: maxDocs });
   }
 
-
-  async dateChangedApiCall(datesl) {
-    console.log("Новая Дата");
-    var docList = await Network.GetDocsAll(
-      this.state.token,
-      datesl.slice(0, 10).replace(/-/g, "-"),
-      this.state.url,
-      this.state.port
-    ).catch((err) => console.log(err));
-
-    var formatted = docList.rows.row.map(item => {
-      return { id: item.id, name: item.name };
+  dateChangedApiCall(datesl) {
+    console.log("ИЗМЕНИЛОСЬ НА " + datesl);
+    this.setState({ date: datesl.slice(0, 10).replace(/-/g, "-") }, () => {
+      this.initApiCall();
     });
-    console.log(docList);
-    console.log("Получил список докторов \nПолучаю расписание для них!!!");
-    var docData = [];
-    for (var i = 0; i < formatted.length; i++) {
-      var response = await Network.GetTimesAll(
-        this.state.token,
-        formatted[i].id,
-        datesl.slice(0, 10).replace(/-/g, "-"),
-        this.state.url,
-        this.state.port
-      ).catch(err => {
-        console.log(err);
-      });
-
-      docData.push(
-        response.rows.row.map(item => {
-          var p = null;
-          if (Object.entries(item.id).length === 0) {
-            p = {
-              visitNum: "", //Цель визита
-              time: item.name,
-              prim: "",
-              doctorId: formatted[i].id
-            };
-          } else {
-            p = {
-              visitNum: item.id.split(",")[1], //Цель визита
-              time: item.name,
-              prim: item.id.split(", ")[0], //Имя пациента
-              doctorId: formatted[i].id
-            };
-          }
-          return p;
-        })
-      );
-    }
-    console.log("Получил все расписания\nТеперь время нормализовать пары");
-    this.setState({ docList: formatted, docInfo: docData, loading: false, date: datesl.slice(0, 10).replace(/-/g, "-")});
-    
   }
 
   getISODate() {
@@ -122,13 +92,19 @@ export class AdminTimeTable extends React.Component {
       this.state.date.slice(0, 10).replace(/-/g, "-"),
       this.state.url,
       this.state.port
-    ).catch((err) => console.log(err));
-
+    ).catch(e => {
+      Alert.alert(
+        "Ошибка",
+        "Превышен лимит ожидания ответа от сервера",
+        [{ text: "OK", onPress: () => {this.initialApiCall()} }],
+        { cancelable: true }
+      );
+    });
     var formatted = docList.rows.row.map(item => {
       return { id: item.id, name: item.name };
     });
     console.log(docList);
-    console.log("Получил список докторов \nПолучаю расписание для них!!!");
+    console.log("Получил список докторов \nПолучаю расписание для них");
     var docData = [];
     for (var i = 0; i < formatted.length; i++) {
       var response = await Network.GetTimesAll(
@@ -137,8 +113,13 @@ export class AdminTimeTable extends React.Component {
         this.state.date.slice(0, 10).replace(/-/g, "-"),
         this.state.url,
         this.state.port
-      ).catch(err => {
-        console.log(err);
+      ).catch(e => {
+        Alert.alert(
+          "Ошибка",
+          "Превышен лимит ожидания ответа от сервера",
+          [{ text: "OK", onPress: () => {this.initialApiCall()} }],
+          { cancelable: true }
+        );
       });
 
       docData.push(
@@ -168,8 +149,12 @@ export class AdminTimeTable extends React.Component {
     this.setState({ loading: false });
   }
 
+  handleBackPress = () => {
+    return true;
+  }
+
   async componentDidMount() {
-    console.log(this.props)
+    this.backHandler = BackHandler.addEventListener('hardwareBackPress', this.handleBackPress);
     await Font.loadAsync({
       Roboto_medium: require("native-base/Fonts/Roboto_medium.ttf")
     });
@@ -188,7 +173,7 @@ export class AdminTimeTable extends React.Component {
         key: i,
         visitNum: "",
         time: "",
-        prim:""
+        prim: ""
       });
     }
     for (var i = 0; i < listOfColumns.length; i++) {
@@ -224,34 +209,59 @@ kab - № кабинета
   */
   //эта функция вызывается после нажатия на кнопку сохранить
   saveChanges(data) {
-
     if (Object.entries(data.mk).length === 0) {
-      data.mk=""
+      data.mk = "";
     }
     if (Object.entries(data.prim).length === 0) {
-      data.prim=""
+      data.prim = "";
     }
     if (Object.entries(data.nvr).length === 0) {
-      data.nvr=""
+      data.nvr = "";
     }
     if (Object.entries(data.kab).length === 0) {
-      data.kab=""
+      data.kab = "";
     }
-    console.log("vivod")
+    console.log("vivod");
     console.log(data);
 
-    Network.EditGrvData(this.state.token,data.doctorId, data.date.slice(0, 10).replace(/-/g, "-") ,data.time,data.mk,data.visitNum,data.nvr,data.kab,this.state.url,this.state.port)
+    Network.EditGrvData2(
+      this.state.token,
+      data.doctorId,
+      data.date.slice(0, 10).replace(/-/g, "-"),
+      data.time,
+      data.mk,
+      data.visitNum,
+      data.nvr,
+      data.kab,
+      this.state.url,
+      this.state.port
+    )
+    console.log("aaaaaaaFFFFFFFFFFFFFFFFFFFF")
     this.setState({ showEditTable: false });
-    this.initialApiCall()
+    this.initialApiCall();
   }
   showEditTable(newState) {
     this.setState(newState);
   }
 
-  deleteCell(data){
-    Network.DeleteGrvData(this.state.token,data.doctorId, data.date.slice(0, 10).replace(/-/g, "-") ,data.time,this.state.url,this.state.port)
+  deleteCell(data) {
+    Network.DeleteGrvData(
+      this.state.token,
+      data.doctorId,
+      data.date.slice(0, 10).replace(/-/g, "-"),
+      data.time,
+      this.state.url,
+      this.state.port
+    ).catch(e => {
+      Alert.alert(
+        "Ошибка",
+        "Превышен лимит ожидания ответа от сервера",
+        [{ text: "OK", onPress: () => {this.DeleteGrvData(data)} }],
+        { cancelable: true }
+      );
+    });
     this.setState({ showEditTable: false });
-    this.initialApiCall()
+    this.initialApiCall();
   }
 
   drawEditTable() {
@@ -259,19 +269,19 @@ kab - № кабинета
       console.log("Not Loaded");
     } else {
       if (this.state.showEditTable === true) {
-        console.log("Clicked Cell")
-        console.log(this.state.modalData)
-        console.log("end")
+        console.log("Clicked Cell");
+        console.log(this.state.modalData);
+        console.log("end");
         return (
           <EditTable
-            deleteFunc={(data) => this.deleteCell(data)}
+            deleteFunc={data => this.deleteCell(data)}
             closeFun={() => this.setState({ showEditTable: false })}
             saveFun={data => this.saveChanges(data)}
             data={{
               visitNum: this.state.modalData.visitNum,
               time: this.state.modalData.time,
               doctorId: this.state.modalData.doctorId,
-              date: this.state.date.slice(0, 10).replace(/-/g, "-") ,
+              date: this.state.date.slice(0, 10).replace(/-/g, "-"),
               prim: this.state.modalData.prim,
               token: this.state.token,
               url: this.state.url,
@@ -287,6 +297,7 @@ kab - № кабинета
     return (
       <FlatList
         data={data}
+        key={data.length}
         numColumns={data.length}
         scrollEnabled={false}
         style={{ flex: 1, textAlign: "center", backgroundColor: "#a52b2a" }}
@@ -298,7 +309,8 @@ kab - № кабинета
   }
 
   generateTable(maxDocs) {
-    if(maxDocs==null) maxDocs=this.state.maxDocs
+
+    if (maxDocs == null) maxDocs = this.state.maxDocs;
     var result = [];
     for (var i = 0; i < this.state.docList.length; i += this.state.maxDocs) {
       var partDoctor = this.state.docList.slice(i, i + maxDocs);
@@ -319,6 +331,7 @@ kab - № кабинета
         <FlatList
           data={r}
           keyExtractor={item => item.key}
+          key={partDoctor.length}
           numColumns={partDoctor.length}
           ListHeaderComponent={this.tableHeader}
           scrollEnabled={false}
@@ -373,6 +386,9 @@ kab - № кабинета
         />
       );
     }
+    if (this.state.screens.get(this.state.maxDocs) == null) {
+      this.state.screens.set(this.state.maxDocs, result);
+    }
     return result;
   }
   render() {
@@ -407,7 +423,7 @@ kab - № кабинета
           </Header>
           {this.drawEditTable()}
           <FlatList
-            data={this.generateTable(null)}
+            data={this.generateTable(this.state.maxDocs)}
             renderItem={({ item }) => item}
             keyExtractor={(item, index) => index}
           />

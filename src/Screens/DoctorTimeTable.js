@@ -6,7 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
-  PixelRatio
+  PixelRatio,BackHandler
 } from "react-native";
 import { Container, Header, Body, Form } from "native-base";
 import { NavigationHeader } from "../Components/NavigationHeader";
@@ -26,20 +26,20 @@ export class DoctorTimeTable extends React.Component {
     listOfCells: null,
     doctorId: this.props.navigation.state.params.data.doctorId, //через пропс обязательно получаем
     date: this.getISODate(),
-    numColumns: 3,
-    token :this.props.navigation.state.params.data.token, //через пропс обязательно получаем
-    url:this.props.navigation.state.params.data.url,
-    port:this.props.navigation.state.params.data.port
+    numColumns:  Math.round(Math.round(Dimensions.get("window").width) * PixelRatio.get() / 350),
+    token: this.props.navigation.state.params.data.token, //через пропс обязательно получаем
+    url: this.props.navigation.state.params.data.url,
+    port: this.props.navigation.state.params.data.port,
+    maxColumns: Math.round(Math.round(Math.max(Dimensions.get("window").width,Dimensions.get("window").height)) * PixelRatio.get() / 350)
   };
 
   onLayout(e) {
-    console.log("here")
     var screenWidth =
       Math.round(Dimensions.get("window").width) * PixelRatio.get();
     var maxDocs = Math.round(screenWidth / 350);
-    console.log(maxDocs)
-    this.setState({numColumns:maxDocs})
-    this.initApiCall()
+    if (this.state.numColumns != maxDocs) {
+      this.setState({ numColumns: maxDocs }, () => {});
+    }
   }
 
   getISODate() {
@@ -50,14 +50,19 @@ export class DoctorTimeTable extends React.Component {
     return isoDate;
   }
 
-
   //Заменяем все в строках
   replaceAll(str, find, replace) {
     return str.replace(new RegExp(find, "g"), replace);
   }
-  
+
+  handleBackPress = () => {
+    return true;
+  }
+
+
   async componentDidMount() {
-    console.log(this.props.navigation.state.params.data.url)
+    this.backHandler = BackHandler.addEventListener('hardwareBackPress', this.handleBackPress);
+    console.log(this.props.navigation.state.params.data.url);
     //TODO ограничитель
     //Вызываем загрузку данных, ждем и показываем экран пользователю
     await this.initApiCall();
@@ -65,33 +70,34 @@ export class DoctorTimeTable extends React.Component {
   }
 
   async initApiCall() {
-    console.log("test")
+    console.log("МЕНЯ ВЫЗВАЛИ");
     var times = await Network.GetDatesAll(
-      this.state.token, //НА ПРОПС!!!!!
+      this.state.token, 
       this.state.doctorId,
       this.state.date.slice(0, 10).replace(/-/g, "-"),
       this.state.url,
       this.state.port
-    );
+    ).catch(e => {
+      Alert.alert(
+        "Ошибка",
+        "Превышен лимит ожидания ответа от сервера",
+        [{ text: "OK", onPress: () => {this.initApiCall()} }],
+        { cancelable: true }
+      );
+    });
     var formatted = times.rows.row
       .map(item => {
         return item.name;
       })
-      .slice(0, this.state.numColumns); //Показываем пока только по 3 даты!
-    console.log("GOTTED DAYS:"+formatted);
-    this.tableHeader = (
-      <FlatList
-        data={formatted.map(item => {
-          var dataArr = { key: item };
-          return dataArr;
-        })}
-        numColumns={formatted.length}
-        style={{ flex: 1, alignSelf: "stretch", backgroundColor: "#a52b2a" }}
-        renderItem={({ item }) => <Text style={styles.header}>{this.replaceAll(item.key,"-",".")}</Text>}
-      />
-    );
+      .slice(
+        0,
+        this.state.maxColumns
+      );
     //Указываем даты
-    this.setState({ dates: formatted });
+    console.log("DATES:" + formatted);
+    if(formatted.length<this.state.maxColumns){
+      this.setState({maxColumns:formatted.length})
+    }
     //Формируем объект, который отошлём в TableFormatter
     var data = {};
     var dates = [];
@@ -102,12 +108,19 @@ export class DoctorTimeTable extends React.Component {
         formatted[i],
         this.state.url,
         this.state.port
-      );
+      ).catch(e => {
+        Alert.alert(
+          "Ошибка",
+          "Превышен лимит ожидания ответа от сервера",
+          [{ text: "OK", onPress: () => {this.initApiCall()} }],
+          { cancelable: true }
+        );
+      });
       var form = pa.rows.row.map(item => {
         var p = null;
         if (Object.entries(item.id).length === 0) {
           p = {
-            visitNum: "", //Цель визита 
+            visitNum: "", //Цель визита
             time: item.name,
             doctorId: this.state.doctorId,
             date: formatted[i],
@@ -115,7 +128,7 @@ export class DoctorTimeTable extends React.Component {
           };
         } else {
           p = {
-            visitNum: item.id.split(",")[1], //Цель визита 
+            visitNum: item.id.split(",")[1], //Цель визита
             time: item.name,
             doctorId: this.state.doctorId,
             date: formatted[i],
@@ -130,91 +143,223 @@ export class DoctorTimeTable extends React.Component {
       });
     }
     data.dates = dates;
-    this.setState({ listOfCells: this.TableFormatter(data) });
+    this.setState({ listOfCells: data, dates: formatted });
   }
 
-  async dateChangedApiCall(datesl) {
-    console.log("test")
-    var times = await Network.GetDatesAll(
-      this.state.token, //НА ПРОПС!!!!!
-      this.state.doctorId,
-      datesl.slice(0, 10).replace(/-/g, "-"),
-      this.state.url,
-      this.state.port
-    );
-    var formatted = times.rows.row
-      .map(item => {
-        return item.name;
-      })
-      .slice(0, this.state.numColumns); //Показываем пока только по 3 даты!
-    console.log("GOTTED DAYS:"+formatted);
-    this.tableHeader = (
-      <FlatList
-        data={formatted.map(item => {
-          var dataArr = { key: item };
-          return dataArr;
-        })}
-        numColumns={formatted.length}
-        style={{ flex: 1, alignSelf: "stretch", backgroundColor: "#a52b2a" }}
-        renderItem={({ item }) => <Text style={styles.header}>{this.replaceAll(item.key,"-",".")}</Text>}
-      />
-    );
-    //Указываем даты
-    this.setState({ dates: formatted });
-    //Формируем объект, который отошлём в TableFormatter
-    var data = {};
-    var dates = [];
-    for (var i = 0; i < formatted.length; i++) {
-      var pa = await Network.GetTimesAll(
-        this.state.token,
-        this.state.doctorId,
-        formatted[i],
-        this.state.url,
-        this.state.port
-      );
-      var form = pa.rows.row.map(item => {
-        var p = null;
-        if (Object.entries(item.id).length === 0) {
-          p = {
-            visitNum: "", //Цель визита 
-            time: item.name,
-            doctorId: this.state.doctorId,
-            date: formatted[i],
-            name: "" //Имя пациента
-          };
-        } else {
-          p = {
-            visitNum: item.id.split(",")[1], //Цель визита 
-            time: item.name,
-            doctorId: this.state.doctorId,
-            date: formatted[i],
-            name: item.id.split(", ")[0] //Имя пациента
-          };
-        }
-        return p;
-      });
-      dates.push({
-        date: formatted[i],
-        cells: form
-      });
-    }
-    data.dates = dates;
-    this.setState({ listOfCells: this.TableFormatter(data), date: datesl.slice(0, 10).replace(/-/g, "-") });
+  dateChangedApiCall(datesl) {
+    console.log("ИЗМЕНИЛОСЬ НА"+datesl)
+    this.setState({ date: datesl.slice(0, 10).replace(/-/g, "-") },()=>{ this.initApiCall()});
   }
+
   constructor(props) {
     super(props);
   }
-  /*
-        Метод приводящий массив json'ов к нужному виду (массив чередующихся по неделям ячеек)
-    */
+
+
+
+  render() {
+    if (this.state.loading) {
+      return <View></View>;
+    } else
+      return (
+        <Container
+          onLayout={e => {
+            this.onLayout(e);
+          }}
+        >
+          <Header
+            androidStatusBarColor="#a52b2a"
+            style={{
+              flexDirection: "row",
+              justifyContent: "center",
+              backgroundColor: "#a52b2a"
+            }}
+          >
+            <Body
+              style={{
+                flexDirection: "row",
+                justifyContent: "center",
+                backgroundColor: "#a52b2a"
+              }}
+            >
+              <NavigationHeader
+                apiCall={date => this.dateChangedApiCall(date)}
+                navigateToSettings={() =>
+                  this.props.navigation.navigate("Settings")
+                }
+                date={this.state.date}
+              />
+            </Body>
+          </Header>
+            <Table
+              data={this.state.listOfCells}
+              numColumns={this.state.numColumns}
+              headerData={this.state.dates}
+              doctorId={this.state.doctorId}
+              token={this.state.token}
+              url={this.state.url}
+              port={this.state.port}
+              update={()=>{this.initApiCall()}}
+            ></Table>
+        </Container>
+      );
+  }
+}
+
+class Table extends React.Component {
+  constructor(props) {
+    super(props);
+  }
+
+  state = {
+    numColumns: this.props.numColumns,
+    data: this.props.data,
+    headerData: this.props.headerData,
+    loading: true,
+    showEditTable: false,
+    doctorId: this.props.doctorId,
+    token: this.props.token,
+    url: this.props.url,
+    port: this.props.port,
+  };
+
+  seEditTable() {
+    this.setState({
+      showEditTable: false
+    });
+  }
+
+  //эта функция вызывается после нажатия на кнопку сохранить
+  saveChanges(data) {
+    if (Object.entries(data.mk).length === 0) {
+      data.mk = "";
+    }
+    if (Object.entries(data.prim).length === 0) {
+      data.prim = "";
+    }
+    if (Object.entries(data.nvr).length === 0) {
+      data.nvr = "";
+    }
+    if (Object.entries(data.kab).length === 0) {
+      data.kab = "";
+    }
+    console.log("vivod");
+
+
+    Network.EditGrvData2(
+      this.state.token,
+      data.doctorId,
+      data.date.slice(0, 10).replace(/-/g, "-"),
+      data.time,
+      data.mk,
+      data.visitNum,
+      data.nvr,
+      data.kab,
+      this.state.url,
+      this.state.port
+    )
+    this.setState({ showEditTable: false });
+    this.props.update()
+  }
+  showEditTable(newState) {
+    this.setState(newState);
+  }
+
+  deleteCell(data) {
+    console.log(data);
+    Network.DeleteGrvData(
+      this.state.token,
+      this.state.doctorId,
+      data.date.slice(0, 10).replace(/-/g, "-"),
+      data.time,
+      this.state.url,
+      this.state.port
+    ).catch(e => {
+      Alert.alert(
+        "Ошибка",
+        "Превышен лимит ожидания ответа от сервера",
+        [{ text: "OK", onPress: () => {this.deleteCell(data)} }],
+        { cancelable: true }
+      );
+    });
+    this.setState({ showEditTable: false });
+    this.props.update()
+  }
+
+  replaceAll(str, find, replace) {
+    return str.replace(new RegExp(find, "g"), replace);
+  }
+
+  drawEditTable() {
+    if (this.state.modalData === undefined) {
+      console.log("Not Loaded");
+    } else {
+      if (this.state.showEditTable === true) {
+        console.log("Clicked Cell");
+        return (
+          <EditTable
+            deleteFunc={data => this.deleteCell(data)}
+            closeFun={() => this.setState({ showEditTable: false })}
+            saveFun={data => this.saveChanges(data)}
+            data={{
+              visitNum: this.state.modalData.visitNum,
+              time: this.state.modalData.time,
+              doctorId: this.state.doctorId,
+              date: this.state.modalData.date.slice(0, 10).replace(/-/g, "-"),
+              prim: this.state.modalData.name,
+              token: this.state.token,
+              url: this.state.url,
+              port: this.state.port
+            }}
+          />
+        );
+      }
+    }
+  }
+
+
+  componentDidUpdate(prevProps, prevState, snapshot) {
+
+    console.log("updated")
+    if (prevProps.numColumns != this.props.numColumns) {
+      console.log("SETTED")
+      this.setState({ numColumns: this.props.numColumns});
+    }
+    if (prevProps.data != this.props.data) {
+      console.log("SETTED")
+      this.setState({ data: this.props.data, headerData: this.props.headerData});
+    }
+  }
+
+  init() {
+    console.log("Я вызван 1");
+    return (
+      <FlatList
+        data={this.state.headerData.slice(0,this.state.numColumns).map(item => {
+          var dataArr = { key: item };
+          return dataArr;
+        })}
+        numColumns={this.state.numColumns}
+        style={{ flex: 1, alignSelf: "stretch", backgroundColor: "#a52b2a" }}
+        renderItem={({ item }) => (
+          <Text style={styles.header}>
+            {this.replaceAll(item.key, "-", ".")}
+          </Text>
+        )}
+      />
+    );
+  }
+
+
   TableFormatter(data) {
+    console.log("Я вызван 2");
     var Cells = [];
-    var listOfColumns = data.dates.map(item => item.cells);
+    var listOfColumns = data.map(item => item.cells);
     var longestArray = Math.max.apply(
       null,
       listOfColumns.map(item => item.length)
     );
-    for (var i = 0; i < longestArray * data.dates.length; i++) {
+    for (var i = 0; i < longestArray * data.length; i++) {
       Cells.push({
         key: i,
         name: "",
@@ -236,164 +381,77 @@ export class DoctorTimeTable extends React.Component {
     }
     return Cells;
   }
-
-  seEditTable() {
-    this.setState({
-      showEditTable: false
-    });
+  componentDidMount() {
+    console.log("ЗАМАУНЧЕН");
+    this.setState({ loading: false });
   }
-
-  //эта функция вызывается после нажатия на кнопку сохранить
-  saveChanges(data) {
-
-    if (Object.entries(data.mk).length === 0) {
-      data.mk=""
-    }
-    if (Object.entries(data.prim).length === 0) {
-      data.prim=""
-    }
-    if (Object.entries(data.nvr).length === 0) {
-      data.nvr=""
-    }
-    if (Object.entries(data.kab).length === 0) {
-      data.kab=""
-    }
-    console.log("vivod")
-    console.log(data);
-
-    Network.EditGrvData(this.state.token,data.doctorId, data.date.slice(0, 10).replace(/-/g, "-") ,data.time,data.mk,data.visitNum,data.nvr,data.kab,this.state.url,this.state.port)
-    this.setState({ showEditTable: false });
-    this.initApiCall()
-  }
-  showEditTable(newState) {
-    this.setState(newState);
-  }
-
-  deleteCell(data){
-    console.log(data)
-    Network.DeleteGrvData(this.state.token,this.state.doctorId, data.date.slice(0, 10).replace(/-/g, "-") ,data.time,this.state.url,this.state.port)
-    this.setState({ showEditTable: false });
-    this.initApiCall()
-  }
-
-  drawEditTable() {
-    if (this.state.modalData === undefined) {
-      console.log("Not Loaded");
-    } else {
-      if (this.state.showEditTable === true) {
-        console.log("Clicked Cell")
-        console.log(this.state.modalData)
-        console.log("end")
-        return (
-          <EditTable
-            deleteFunc={(data) => this.deleteCell(data)}
-            closeFun={() => this.setState({ showEditTable: false })}
-            saveFun={data => this.saveChanges(data)}
-            data={{
-              visitNum: this.state.modalData.visitNum,
-              time: this.state.modalData.time,
-              doctorId: this.state.doctorId,
-              date: this.state.modalData.date.slice(0, 10).replace(/-/g, "-") ,
-              prim: this.state.modalData.name,
-              token: this.state.token,
-              url: this.state.url,
-              port: this.state.port
-            }}
-          />
-        );
-      }
-    }
-  }
-
   render() {
     if (this.state.loading) {
       return <View></View>;
     } else
       return (
-        <Container onLayout={(e)=>{this.onLayout(e)}}>
-          <Header
-            androidStatusBarColor="#a52b2a"
-            style={{
-              flexDirection: "row",
-              justifyContent: "center",
-              backgroundColor: "#a52b2a"
-            }}
-          >
-            <Body
-              style={{
-                flexDirection: "row",
-                justifyContent: "center",
-                backgroundColor: "#a52b2a"
-              }}
-            >
-              <NavigationHeader
-                apiCall={date => this.dateChangedApiCall(date)}
-                navigateToSettings={() => this.props.navigation.navigate("Settings")}
-                date={this.state.date}
-              />
-            </Body>
-          </Header>
-          {this.drawEditTable()}
-          <View style={styles.container}>
-            <FlatList
-              data={this.state.listOfCells}
-              keyExtractor={item => item.key}
-              numColumns={this.state.dates.length}
-              ListHeaderComponent={this.tableHeader}
-              style={{
-                flex: 1,
-                alignSelf: "stretch",
-                backgroundColor: "#f1fff0"
-              }}
-              renderItem={({ item }) => {
-                if (item.time === "") {
-                  return (
-                    <View
-                      style={{
-                        flex: 1,
-                        flexDirection: "row",
-                        borderWidth: 0.5,
-                        borderColor: "black"
-                      }}
-                    >
-                      <Cell
-                        name={item.name}
-                        time={item.time}
-                        visitNum={item.visitNum}
-                      />
-                    </View>
-                  );
-                } else {
-                  return (
-                    <TouchableOpacity
-                      style={{
-                        flex: 1,
-                        flexDirection: "row",
-                        borderWidth: 0.5,
-                        borderColor: "black"
-                      }}
-                      onPress={() =>
-                        this.setState({
-                          showEditTable: true,
-                          modalData: item
-                        })
-                      }
-                    >
-                      <Cell
-                        name={item.name}
-                        time={item.time}
-                        visitNum={item.visitNum}
-                      />
-                    </TouchableOpacity>
-                  );
-                }
-              }}
-            />
-          </View>
-        </Container>
+        <View style={styles.container}>
+        {this.drawEditTable()}
+        <FlatList
+          key={this.state.numColumns}
+          data={this.TableFormatter(this.state.data.dates.slice(0,this.state.numColumns))}
+          keyExtractor={item => item.key}
+          numColumns={this.state.numColumns}
+          ListHeaderComponent={this.init()}
+          style={{
+            flex: 1,
+            alignSelf: "stretch",
+            backgroundColor: "#f1fff0"
+          }}
+          renderItem={({ item }) => {
+            if (item.time === "") {
+              return (
+                <View
+                  style={{
+                    flex: 1,
+                    flexDirection: "row",
+                    borderWidth: 0.5,
+                    borderColor: "black"
+                  }}
+                >
+                  <Cell
+                    name={item.name}
+                    time={item.time}
+                    visitNum={item.visitNum}
+                  />
+                </View>
+              );
+            } else {
+              return (
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    flexDirection: "row",
+                    borderWidth: 0.5,
+                    borderColor: "black"
+                  }}
+                  onPress={() =>
+                    this.setState({
+                      showEditTable: true,
+                      modalData: item
+                    })
+                  }
+                >
+                  <Cell
+                    name={item.name}
+                    time={item.time}
+                    visitNum={item.visitNum}
+                  />
+                </TouchableOpacity>
+              );
+            }
+          }}
+        />
+        </View>
       );
   }
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -417,57 +475,3 @@ const styles = StyleSheet.create({
     height: 44
   }
 });
-
-//Example Data
-/*
-    data =  {
-    dates : [{
-      date : '11.12.1212',
-      cells : [{
-        visitNum : 'Первое посещение 11 12',
-        name : 'Иван Иванов',
-        time : '11:00',
-      },
-      {
-        visitNum : 'Первое посещение',
-        name : 'Иван Иванов',
-        time : '11:00',
-      },
-      {
-        visitNum : 'Первое посещение 11 12',
-        name : 'Иван Иванов',
-        time : '11:00',
-      },
-      {
-        visitNum : 'Первое посещение',
-        name : 'Иван Иванов',
-        time : '11:00',
-      }
-    ]  
-  },
-  {
-    date : '12.13.1212',
-    cells : [{
-      visitNum : 'Первое посещение 12 13',
-      name : 'Иван Иванов',
-      time : '11:00',
-    }
-  ]  
-},
-{
-  date : '10.13.1212',
-  cells : [{
-    visitNum : 'Первое посещение 12 13',
-    name : 'Иван Иванов',
-    time : '11:00',
-  },
-  {
-    visitNum : 'Первое посещение 12 13',
-    name : 'Иван Иванов',
-    time : '11:00',
-  }
-]  
-}
-  ]
-}
-*/

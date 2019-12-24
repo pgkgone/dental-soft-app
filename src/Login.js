@@ -52,6 +52,14 @@ export class Login extends React.Component {
     };
   };
 
+  componentDidUpdate(prevProps, prevState, snapshot) {
+    console.log("updated")
+    if(this.props != prevProps){
+      console.log("tyt")
+    this.setState({username:"",password:"",first:true, isLocked:false, lockingType:null, cid:""})
+    }
+  }
+
   async login() {
     console.log("Пробую авторизоваться")
     if (

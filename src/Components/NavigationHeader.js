@@ -101,12 +101,12 @@ export class NavigationHeader extends React.Component {
               justifyContent: "center",
               paddingHorizontal: 20
             }}
+            onPress={() => this.prevDate()}
           >
             <ArrowIcons
               name="left"
               color={"white"}
               size={22}
-              onPress={() => this.prevDate()}
             />
           </TouchableOpacity>
           <View
@@ -153,12 +153,12 @@ export class NavigationHeader extends React.Component {
               justifyContent: "center",
               paddingHorizontal: 20
             }}
+            onPress={() => this.nextDate()}
           >
             <ArrowIcons
               name="right"
               color={"white"}
               size={22}
-              onPress={() => this.nextDate()}
             />
           </TouchableOpacity>
         </View>
