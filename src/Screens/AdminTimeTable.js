@@ -53,10 +53,58 @@ export class AdminTimeTable extends React.Component {
     this.setState({maxDocs:maxDocs})
   }
 
-  dateChangedApiCall(datesl) {
-    console.log("ИЗМЕНИЛОСЬ");
-    this.setState({ date: datesl.slice(0, 10).replace(/-/g, "-") });
-    this.initialApiCall();
+
+  async dateChangedApiCall(datesl) {
+    console.log("Новая Дата");
+    var docList = await Network.GetDocsAll(
+      this.state.token,
+      datesl.slice(0, 10).replace(/-/g, "-"),
+      this.state.url,
+      this.state.port
+    ).catch((err) => console.log(err));
+
+    var formatted = docList.rows.row.map(item => {
+      return { id: item.id, name: item.name };
+    });
+    console.log(docList);
+    console.log("Получил список докторов \nПолучаю расписание для них!!!");
+    var docData = [];
+    for (var i = 0; i < formatted.length; i++) {
+      var response = await Network.GetTimesAll(
+        this.state.token,
+        formatted[i].id,
+        datesl.slice(0, 10).replace(/-/g, "-"),
+        this.state.url,
+        this.state.port
+      ).catch(err => {
+        console.log(err);
+      });
+
+      docData.push(
+        response.rows.row.map(item => {
+          var p = null;
+          if (Object.entries(item.id).length === 0) {
+            p = {
+              visitNum: "", //Цель визита
+              time: item.name,
+              prim: "",
+              doctorId: formatted[i].id
+            };
+          } else {
+            p = {
+              visitNum: item.id.split(",")[1], //Цель визита
+              time: item.name,
+              prim: item.id.split(", ")[0], //Имя пациента
+              doctorId: formatted[i].id
+            };
+          }
+          return p;
+        })
+      );
+    }
+    console.log("Получил все расписания\nТеперь время нормализовать пары");
+    this.setState({ docList: formatted, docInfo: docData, loading: false, date: datesl.slice(0, 10).replace(/-/g, "-")});
+    
   }
 
   getISODate() {
@@ -74,13 +122,13 @@ export class AdminTimeTable extends React.Component {
       this.state.date.slice(0, 10).replace(/-/g, "-"),
       this.state.url,
       this.state.port
-    );
+    ).catch((err) => console.log(err));
 
     var formatted = docList.rows.row.map(item => {
       return { id: item.id, name: item.name };
     });
     console.log(docList);
-    console.log("Получил список докторов \nПолучаю расписание для них");
+    console.log("Получил список докторов \nПолучаю расписание для них!!!");
     var docData = [];
     for (var i = 0; i < formatted.length; i++) {
       var response = await Network.GetTimesAll(
