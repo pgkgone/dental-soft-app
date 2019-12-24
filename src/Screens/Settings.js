@@ -5,7 +5,8 @@ import {
   Switch,
   View,
   TextInput,
-  TouchableOpacity
+  TouchableOpacity,
+  Alert
 } from "react-native";
 import { Container, Header, Content, Picker, Form, Right } from "native-base";
 import EditIcon from "react-native-vector-icons/Feather";
@@ -15,7 +16,8 @@ export class Settings extends React.Component {
   state = {
     useLockScreen: false,
     lockScreenMethod: "touchid",
-    password: ""
+    password: "",
+    isLoading: true
   };
   static navigationOptions = ({ navigation }) => {
     return {
@@ -28,7 +30,7 @@ export class Settings extends React.Component {
   };
   async componentDidMount() {
     var usedLock = await SecureStore.getItemAsync("locking");
-    if (usedLock != null && usedLock == 1) {
+    if (usedLock != null && usedLock == "1") {
       this.setState({ useLockScreen: true });
     }
     var type = await SecureStore.getItemAsync("blocktype");
@@ -37,58 +39,113 @@ export class Settings extends React.Component {
         this.setState({ lockScreenMethod: "password" });
       }
     }
+    this.setState({ isLoading: false });
   }
 
-  onLogOut(){
-    console.log("Выйти из аккаунта");
+  callbacker() {
+    console.log(this.state.useLockScreen);
+    if (!this.state.useLockScreen) {
+      SecureStore.deleteItemAsync("locking");
+      SecureStore.deleteItemAsync("blocktype");
+      SecureStore.deleteItemAsync("lockpass");
+    } else {
+      console.log("Setting touch id")
+      if (this.state.lockScreenMethod == "touchid") {
+        SecureStore.setItemAsync("blocktype", "touchid");
+        SecureStore.setItemAsync("locking","1");
+      }
+    }
+  }
+  switched() {
+    console.log("switched");
+    console.log(this.state.useLockScreen);
+    this.setState({ useLockScreen: !this.state.useLockScreen }, () => {
+      this.callbacker();
+    });
+  }
+  async onLogOut() {
+    await SecureStore.deleteItemAsync("loginpass");
+    await SecureStore.deleteItemAsync("locking");
+    await SecureStore.deleteItemAsync("blocktype");
+    await SecureStore.deleteItemAsync("lockpass");
+    return this.props.navigation.navigate("Login", { data: this.data });
+  }
+
+  changedMethod(data) {
+    console.log("changed method");
+    if (data == "touchid") {
+      SecureStore.setItemAsync("blocktype", "touchid");
+      SecureStore.setItemAsync("locking","1");
+    } else
+      Alert.alert(
+        "Информация!",
+        "Введите пароль в поле ниже выбора метода",
+        [{ text: "OK", onPress: () => console.log("OK Pressed") }],
+        { cancelable: false }
+      );
+
+    console.log("changed and setted");
   }
 
   render() {
-    return (
-      <ScrollView
-        style={{ flexDirection: "column", backgroundColor: "#f1fff0", flex: 1 }}
-      >
-        <Divider text={"Настройки приложения"} />
-        <EditClinicId id={"555"} />
-        <Divider text={"Настройки конфиденциальности"} />
-        <LockScreenStateSwitcher
-          useLockScreen={this.state.useLockScreen}
-          onSwitchCallBack={() =>
-            this.setState({ useLockScreen: !this.state.useLockScreen })
-          }
-        />
-        <LockScreenMethod
-          useLockScreen={this.state.useLockScreen}
-          lockScreenMethod={this.state.lockScreenMethod}
-          onSwitchCallBack={method =>
-            this.setState({ lockScreenMethod: method })
-          }
-        />
-        <SetPassword
-          useLockScreen={this.state.useLockScreen}
-          lockScreenMethod={this.state.lockScreenMethod}
-          password={this.state.password}
-          onSwitchCallBack={pass => this.setState({ password: pass })}
-          activated={false}
-        />
-        <Divider text={"Настройки пользователя"} />
-        <LogOut onLogOut={()=>this.onLogOut()}/>
-      </ScrollView>
-    );
+    if (this.state.isLoading) {
+      return <View></View>;
+    } else
+      return (
+        <ScrollView
+          style={{
+            flexDirection: "column",
+            backgroundColor: "#f1fff0",
+            flex: 1
+          }}
+        >
+          <Divider text={"Настройки приложения"} />
+          <EditClinicId id={""} />
+          <Divider text={"Настройки конфиденциальности"} />
+          <LockScreenStateSwitcher
+            useLockScreen={this.state.useLockScreen}
+            onSwitchCallBack={() => {
+              this.setState({ useLockScreen: !this.state.useLockScreen });
+              this.switched();
+            }}
+          />
+          <LockScreenMethod
+            useLockScreen={this.state.useLockScreen}
+            lockScreenMethod={this.state.lockScreenMethod}
+            onSwitchCallBack={method => {
+              this.setState({ lockScreenMethod: method });
+              this.changedMethod(method);
+            }}
+          />
+          <SetPassword
+            useLockScreen={this.state.useLockScreen}
+            lockScreenMethod={this.state.lockScreenMethod}
+            password={this.state.password}
+            onSwitchCallBack={pass => this.setState({ password: pass })}
+            activated={false}
+          />
+          <Divider text={"Настройки пользователя"} />
+          <LogOut onLogOut={() => this.onLogOut()} />
+        </ScrollView>
+      );
   }
 }
 
 class LogOut extends React.Component {
   render() {
     return (
-      <View style={{
-        flexDirection : 'row',
-        justifyContent : 'center',
-        paddingTop : 20,
-        paddingBottom : 30
-      }}>
-        <TouchableOpacity onPress={()=>this.props.onLogOut()}>
-        <Text style={{color : '#a52a2a', fontSize : 30}}>Выйти из аккаунта</Text>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "center",
+          paddingTop: 20,
+          paddingBottom: 30
+        }}
+      >
+        <TouchableOpacity onPress={() => this.props.onLogOut()}>
+          <Text style={{ color: "#a52a2a", fontSize: 30 }}>
+            Выйти из аккаунта
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -107,7 +164,14 @@ class Divider extends React.Component {
           borderBottomColor: "grey"
         }}
       >
-        <Text style={{ color: "grey", fontSize: 20, borderBottomWidth: 0.5 }}>
+        <Text
+          style={{
+            color: "grey",
+            fontSize: 20,
+            borderBottomWidth: 0.5,
+            textAlign: "center"
+          }}
+        >
           {this.props.text}
         </Text>
       </View>
@@ -116,7 +180,6 @@ class Divider extends React.Component {
 }
 class EditClinicId extends React.Component {
   state = {
-    id: this.props.id,
     showIcon: true
   };
   onFocusProcessor() {
@@ -125,6 +188,14 @@ class EditClinicId extends React.Component {
 
   onEndEditingProcessor() {
     this.setState({ showIcon: true });
+    SecureStore.setItemAsync("cid", this.state.id);
+  }
+
+  async componentDidMount() {
+    var cid = await SecureStore.getItemAsync("cid");
+    if (cid != null) {
+      this.setState({ id: cid });
+    }
   }
 
   render() {
@@ -172,7 +243,6 @@ class EditClinicId extends React.Component {
             <View style={{ flexDirection: "column", justifyContent: "center" }}>
               <TextInput
                 value={this.state.id}
-                keyboardType={"numeric"}
                 style={{ fontSize: 20 }}
                 onChangeText={data => this.setState({ id: data })}
                 onFocus={() => this.onFocusProcessor()}
@@ -243,7 +313,7 @@ class LockScreenMethod extends React.Component {
           <View
             style={{
               minWidth: 100,
-              maxWidth : 130,
+              maxWidth: 130,
               flex: 0.5,
               flexDirection: "row",
               justifyContent: "flex-end"
@@ -264,7 +334,7 @@ class LockScreenMethod extends React.Component {
                 value="password"
               />
               <Picker.Item
-                style={{ textAlign: "center"  }}
+                style={{ textAlign: "center" }}
                 label="Touch ID"
                 value="touchid"
               />
@@ -289,7 +359,7 @@ class LockScreenMethod extends React.Component {
           <View
             style={{
               minWidth: 100,
-              maxWidth : 130,
+              maxWidth: 130,
               flex: 0.5,
               flexDirection: "row",
               justifyContent: "flex-end"
@@ -330,10 +400,14 @@ class SetPassword extends React.Component {
   };
 
   inputProcessor(val) {
-    val = val.replace(/[^0-9]/g, '')
+    val = val.replace(/[^0-9]/g, "");
     if (val.length !== 4) {
       this.setState({ placeholder: val });
     } else {
+      SecureStore.setItemAsync("lockpass", val);
+      SecureStore.setItemAsync("locking", "1");
+      SecureStore.setItemAsync("blocktype", "password");
+      console.log("setted lockpass:" + val);
       this.setState({
         password: val,
         placeholder: "0000",

@@ -17,11 +17,11 @@ import CancelIcons from "react-native-vector-icons/Entypo";
 
 export class EditTable extends React.Component {
   state = {
-    visitNum: this.props.data.visitNum,
+    visitNum: this.props.data.prim,
     time: this.props.data.time,
     doctorId: this.props.data.doctorId,
     date: this.props.data.date,
-    prim: this.props.data.prim,
+    prim: this.props.data.visitNum,
     mk: "",
     nvr: "",
     kab: "",
@@ -44,6 +44,12 @@ export class EditTable extends React.Component {
   }
   
   async componentDidMount() {
+    if(this.state.visitNum==undefined){
+      this.setState({visitNum:""})
+    }
+    if(this.state.prim==undefined){
+      this.setState({prim:""})
+    }
     var response = await this.getData();
     console.log(response);
     this.setState({
@@ -57,10 +63,10 @@ export class EditTable extends React.Component {
   }
 
   onChangeprim(txt) {
-    this.setState({ prim: txt });
+    this.setState({ visitNum: txt });
   }
   onChangeTime(txt) {
-    this.setState({ nvr: txt.replace(/[^0-9]/g, '')});
+    this.setState({ nvr: txt });
   }
   onChangeCabinet(txt) {
     this.setState({ kab: txt });
@@ -150,13 +156,12 @@ export class EditTable extends React.Component {
                     fontSize: 16
                   }}
                   onChangeText={text => this.onChangeprim(text)}
-                  value={this.state.prim}
+                  value={this.state.visitNum}
                 />
               </View>
               <View style={styles.editBoxItemView}>
                 <Text style={styles.editBoxItem}>Норма (мин.): </Text>
                 <TextInput
-                  keyboardType={"numeric"}
                   style={{
                     height: 40,
                     borderBottomWidth: 1,

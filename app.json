@@ -5,7 +5,6 @@
     "privacy": "public",
     "sdkVersion": "36.0.0",
     "platforms": [
-      "ios",
       "android",
       "web"
     ],
@@ -23,9 +22,6 @@
     "assetBundlePatterns": [
       "**/*"
     ],
-    "ios": {
-      "supportsTablet": true
-    },
     "androidStatusBarColor": "#a52b2a",
     "androidStatusBar": {
       "barStyle": "light-content",

@@ -4,7 +4,9 @@ import {
   View,
   FlatList,
   StyleSheet,
-  TouchableOpacity
+  TouchableOpacity,
+  Dimensions,
+  PixelRatio
 } from "react-native";
 import { Container, Header, Body, Form } from "native-base";
 import { NavigationHeader } from "../Components/NavigationHeader";
@@ -22,13 +24,23 @@ export class DoctorTimeTable extends React.Component {
     loading: true,
     dates: null,
     listOfCells: null,
-    doctorId: 2, //через пропс обязательно получаем
+    doctorId: this.props.navigation.state.params.data.doctorId, //через пропс обязательно получаем
     date: this.getISODate(),
     numColumns: 3,
-    token : "555", //через пропс обязательно получаем
-    url:"vds.dental-soft.ru",
-    port:"2102"
+    token :this.props.navigation.state.params.data.token, //через пропс обязательно получаем
+    url:this.props.navigation.state.params.data.url,
+    port:this.props.navigation.state.params.data.port
   };
+
+  onLayout(e) {
+    console.log("here")
+    var screenWidth =
+      Math.round(Dimensions.get("window").width) * PixelRatio.get();
+    var maxDocs = Math.round(screenWidth / 350);
+    console.log(maxDocs)
+    this.setState({numColumns:maxDocs})
+    this.initApiCall()
+  }
 
   getISODate() {
     var date = new Date(); // Or the date you'd like converted.
@@ -38,12 +50,14 @@ export class DoctorTimeTable extends React.Component {
     return isoDate;
   }
 
+
   //Заменяем все в строках
   replaceAll(str, find, replace) {
     return str.replace(new RegExp(find, "g"), replace);
   }
   
   async componentDidMount() {
+    console.log(this.props.navigation.state.params.data.url)
     //TODO ограничитель
     //Вызываем загрузку данных, ждем и показываем экран пользователю
     await this.initApiCall();
@@ -51,6 +65,7 @@ export class DoctorTimeTable extends React.Component {
   }
 
   async initApiCall() {
+    console.log("test")
     var times = await Network.GetDatesAll(
       this.state.token, //НА ПРОПС!!!!!
       this.state.doctorId,
@@ -116,7 +131,6 @@ export class DoctorTimeTable extends React.Component {
     }
     data.dates = dates;
     this.setState({ listOfCells: this.TableFormatter(data) });
-    console.log(this.state.listOfCells)
   }
 
   dateChangedApiCall(datesl) {
@@ -183,7 +197,7 @@ export class DoctorTimeTable extends React.Component {
     console.log("vivod")
     console.log(data);
 
-    Network.EditGrvData(this.state.token,data.doctorId, data.date,data.time,data.mk,data.prim,data.nvr,data.kab,this.state.url,this.state.port)
+    Network.EditGrvData(this.state.token,data.doctorId, data.date.slice(0, 10).replace(/-/g, "-") ,data.time,data.mk,data.visitNum,data.nvr,data.kab,this.state.url,this.state.port)
     this.setState({ showEditTable: false });
     this.initApiCall()
   }
@@ -193,26 +207,30 @@ export class DoctorTimeTable extends React.Component {
 
   deleteCell(data){
     console.log(data)
-    Network.DeleteGrvData(this.state.token,data.doctorId, data.date,data.time,this.state.url,this.state.port)
+    Network.DeleteGrvData(this.state.token,this.state.doctorId, data.date.slice(0, 10).replace(/-/g, "-") ,data.time,this.state.url,this.state.port)
     this.setState({ showEditTable: false });
     this.initApiCall()
   }
+
   drawEditTable() {
     if (this.state.modalData === undefined) {
       console.log("Not Loaded");
     } else {
       if (this.state.showEditTable === true) {
+        console.log("Clicked Cell")
+        console.log(this.state.modalData)
+        console.log("end")
         return (
           <EditTable
-            deleteFunc={ data=> this.deleteCell(data)}
+            deleteFunc={(data) => this.deleteCell(data)}
             closeFun={() => this.setState({ showEditTable: false })}
             saveFun={data => this.saveChanges(data)}
             data={{
               visitNum: this.state.modalData.visitNum,
               time: this.state.modalData.time,
               doctorId: this.state.doctorId,
-              date: this.state.date.slice(0, 10).replace(/-/g, "-"),
-              prim: this.state.modalData.prim,
+              date: this.state.modalData.date.slice(0, 10).replace(/-/g, "-") ,
+              prim: this.state.modalData.name,
               token: this.state.token,
               url: this.state.url,
               port: this.state.port
@@ -228,7 +246,7 @@ export class DoctorTimeTable extends React.Component {
       return <View></View>;
     } else
       return (
-        <Container>
+        <Container onLayout={(e)=>{this.onLayout(e)}}>
           <Header
             androidStatusBarColor="#a52b2a"
             style={{

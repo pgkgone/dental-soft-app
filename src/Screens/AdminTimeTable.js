@@ -18,46 +18,9 @@ import Network from "../Utils/Networking";
 import { NavigationHeader } from "../Components/NavigationHeader";
 import { Cell } from "../Components/Cell";
 import { EditTable } from "../Components/EditTable";
-
 export class AdminTimeTable extends React.Component {
   constructor(props) {
     super(props);
-    var screenWidth =
-      Math.round(Dimensions.get("window").width) * PixelRatio.get();
-    var maxDocs = Math.round(screenWidth / 350);
-    this.state = {
-      list: null,
-      loading: true,
-      token: "555",
-      url: "vds.dental-soft.ru",
-      port: "2102",
-      date: this.getISODate()
-        .slice(0, 10)
-        .replace(/-/g, "-"),
-      width: screenWidth,
-      maxDocs: maxDocs,
-      docList: null,
-      docInfo: null,
-      showEditTable: false
-    };
-
-    this.onLayout = this.onLayout.bind(this);
-  }
-  getISODate() {
-    var date = new Date(); // Or the date you'd like converted.
-    var isoDate = new Date(
-      date.getTime() - date.getTimezoneOffset() * 60000
-    ).toISOString();
-    return isoDate;
-  }
-  onLayout(e) {
-    var screenWidth =
-      Math.round(Dimensions.get("window").width) * PixelRatio.get();
-    var maxDocs = Math.round(screenWidth / 350);
-    this.setState({
-      width: screenWidth,
-      maxDocs: maxDocs
-    });
   }
 
   //устанавливаем stacknavigation header
@@ -66,29 +29,42 @@ export class AdminTimeTable extends React.Component {
       header: null
     };
   };
-
   state = {
     list: null,
     loading: true,
-    token: "555",
-    url: "vds.dental-soft.ru",
-    port: "2102",
-    date: this.getISODate()
-      .slice(0, 10)
-      .replace(/-/g, "-"),
-    width: 0,
-    maxDocs: 2,
+    token: this.props.navigation.state.params.data.token,
+    url: this.props.navigation.state.params.data.url,
+    port: this.props.navigation.state.params.data.port,
+    date: this.getISODate(),
     docList: null,
     docInfo: null,
-    showEditTable: false
+    showEditTable: false,
+    screenWidth:Math.round(Dimensions.get("window").width) * PixelRatio.get(),
+    maxDocs: Math.round(Math.round(Dimensions.get("window").width) * PixelRatio.get() / 350),
   };
-  maxDocsCalc() {
-    return Math.round(this.state.width / 350);
+
+  onLayout(e) {
+    console.log("here")
+    var screenWidth =
+      Math.round(Dimensions.get("window").width) * PixelRatio.get();
+    var maxDocs = Math.round(screenWidth / 350);
+    console.log(maxDocs)
+    this.generateTable()
+    this.setState({maxDocs:maxDocs})
   }
+
   dateChangedApiCall(datesl) {
     console.log("ИЗМЕНИЛОСЬ");
     this.setState({ date: datesl.slice(0, 10).replace(/-/g, "-") });
     this.initialApiCall();
+  }
+
+  getISODate() {
+    var date = new Date(); // Or the date you'd like converted.
+    var isoDate = new Date(
+      date.getTime() - date.getTimezoneOffset() * 60000
+    ).toISOString();
+    return isoDate;
   }
 
   async initialApiCall() {
@@ -124,14 +100,14 @@ export class AdminTimeTable extends React.Component {
             p = {
               visitNum: "", //Цель визита
               time: item.name,
-              name: "",
+              prim: "",
               doctorId: formatted[i].id
             };
           } else {
             p = {
               visitNum: item.id.split(",")[1], //Цель визита
               time: item.name,
-              name: item.id.split(", ")[0], //Имя пациента
+              prim: item.id.split(", ")[0], //Имя пациента
               doctorId: formatted[i].id
             };
           }
@@ -145,6 +121,7 @@ export class AdminTimeTable extends React.Component {
   }
 
   async componentDidMount() {
+    console.log(this.props)
     await Font.loadAsync({
       Roboto_medium: require("native-base/Fonts/Roboto_medium.ttf")
     });
@@ -161,20 +138,20 @@ export class AdminTimeTable extends React.Component {
     for (var i = 0; i < longestArray * data.dates.length; i++) {
       Cells.push({
         key: i,
-        name: "",
         visitNum: "",
-        time: ""
+        time: "",
+        prim:""
       });
     }
     for (var i = 0; i < listOfColumns.length; i++) {
       listOfColumns[i].map((item, index) => {
         var newCell = {
           key: Cells[i + listOfColumns.length * index].key,
-          name: item.name,
           visitNum: item.visitNum,
           time: item.time,
           date: item.date,
-          doctorId: item.doctorId
+          doctorId: item.doctorId,
+          prim: item.prim
         };
         Cells[i + listOfColumns.length * index] = newCell;
       });
@@ -199,51 +176,34 @@ kab - № кабинета
   */
   //эта функция вызывается после нажатия на кнопку сохранить
   saveChanges(data) {
+
     if (Object.entries(data.mk).length === 0) {
-      data.mk = "";
+      data.mk=""
     }
     if (Object.entries(data.prim).length === 0) {
-      data.prim = "";
+      data.prim=""
     }
     if (Object.entries(data.nvr).length === 0) {
-      data.nvr = "";
+      data.nvr=""
     }
     if (Object.entries(data.kab).length === 0) {
-      data.kab = "";
+      data.kab=""
     }
-    console.log("vivod");
+    console.log("vivod")
     console.log(data);
 
-    Network.EditGrvData(
-      this.state.token,
-      data.doctorId,
-      data.date,
-      data.time,
-      data.mk,
-      data.prim,
-      data.nvr,
-      data.kab,
-      this.state.url,
-      this.state.port
-    );
+    Network.EditGrvData(this.state.token,data.doctorId, data.date.slice(0, 10).replace(/-/g, "-") ,data.time,data.mk,data.visitNum,data.nvr,data.kab,this.state.url,this.state.port)
     this.setState({ showEditTable: false });
-    this.initialApiCall();
+    this.initialApiCall()
   }
   showEditTable(newState) {
     this.setState(newState);
   }
 
-  deleteCell(data) {
-    Network.DeleteGrvData(
-      this.state.token,
-      data.doctorId,
-      data.date,
-      data.time,
-      this.state.url,
-      this.state.port
-    );
+  deleteCell(data){
+    Network.DeleteGrvData(this.state.token,data.doctorId, data.date.slice(0, 10).replace(/-/g, "-") ,data.time,this.state.url,this.state.port)
     this.setState({ showEditTable: false });
-    this.initApiCall();
+    this.initialApiCall()
   }
 
   drawEditTable() {
@@ -251,16 +211,19 @@ kab - № кабинета
       console.log("Not Loaded");
     } else {
       if (this.state.showEditTable === true) {
+        console.log("Clicked Cell")
+        console.log(this.state.modalData)
+        console.log("end")
         return (
           <EditTable
-            deleteFunc={() => this.deleteCell()}
+            deleteFunc={(data) => this.deleteCell(data)}
             closeFun={() => this.setState({ showEditTable: false })}
             saveFun={data => this.saveChanges(data)}
             data={{
               visitNum: this.state.modalData.visitNum,
               time: this.state.modalData.time,
               doctorId: this.state.modalData.doctorId,
-              date: this.state.date,
+              date: this.state.date.slice(0, 10).replace(/-/g, "-") ,
               prim: this.state.modalData.prim,
               token: this.state.token,
               url: this.state.url,
@@ -286,11 +249,12 @@ kab - № кабинета
     );
   }
 
-  generateTable() {
+  generateTable(maxDocs) {
+    if(maxDocs==null) maxDocs=this.state.maxDocs
     var result = [];
     for (var i = 0; i < this.state.docList.length; i += this.state.maxDocs) {
-      var partDoctor = this.state.docList.slice(i, i + this.state.maxDocs);
-      var partInfo = this.state.docInfo.slice(i, i + this.state.maxDocs);
+      var partDoctor = this.state.docList.slice(i, i + maxDocs);
+      var partInfo = this.state.docInfo.slice(i, i + maxDocs);
       var data = {};
       var dates = [];
       for (var j = 0; j < partDoctor.length; j++) {
@@ -302,7 +266,7 @@ kab - № кабинета
       data.dates = dates;
       var r = this.TableFormatter(data);
       result.push(this.generateHeader(partDoctor));
-      console.log("!!!!!" + partDoctor.length);
+
       result.push(
         <FlatList
           data={r}
@@ -327,7 +291,7 @@ kab - № кабинета
                   }}
                 >
                   <Cell
-                    name={item.name}
+                    name={item.prim}
                     time={item.time}
                     visitNum={item.visitNum}
                   />
@@ -350,7 +314,7 @@ kab - № кабинета
                   }
                 >
                   <Cell
-                    name={item.name}
+                    name={item.prim}
                     time={item.time}
                     visitNum={item.visitNum}
                   />
@@ -368,7 +332,7 @@ kab - № кабинета
       return <View></View>;
     } else
       return (
-        <Container>
+        <Container onLayout={this.onLayout.bind(this)}>
           <Header
             androidStatusBarColor="#a52b2a"
             style={{
@@ -394,13 +358,11 @@ kab - № кабинета
             </Body>
           </Header>
           {this.drawEditTable()}
-          <View /*onLayout={this.onLayout}*/>
-            <FlatList
-              data={this.generateTable()}
-              renderItem={({ item }) => item}
-              keyExtractor={(item, index) => index}
-            />
-          </View>
+          <FlatList
+            data={this.generateTable(null)}
+            renderItem={({ item }) => item}
+            keyExtractor={(item, index) => index}
+          />
         </Container>
       );
   }

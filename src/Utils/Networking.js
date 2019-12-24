@@ -1,4 +1,5 @@
 import * as soap from "soap-everywhere";
+import fetch from "./fetchWithTimeout";
 class Network {
   //TODO PORT SUPPORT
 
