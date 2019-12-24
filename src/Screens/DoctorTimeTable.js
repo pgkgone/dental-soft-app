@@ -133,9 +133,73 @@ export class DoctorTimeTable extends React.Component {
     this.setState({ listOfCells: this.TableFormatter(data) });
   }
 
-  dateChangedApiCall(datesl) {
-    this.setState({ date: datesl.slice(0, 10).replace(/-/g, "-") });
-    this.initApiCall();
+  async dateChangedApiCall(datesl) {
+    console.log("test")
+    var times = await Network.GetDatesAll(
+      this.state.token, //НА ПРОПС!!!!!
+      this.state.doctorId,
+      datesl.slice(0, 10).replace(/-/g, "-"),
+      this.state.url,
+      this.state.port
+    );
+    var formatted = times.rows.row
+      .map(item => {
+        return item.name;
+      })
+      .slice(0, this.state.numColumns); //Показываем пока только по 3 даты!
+    console.log("GOTTED DAYS:"+formatted);
+    this.tableHeader = (
+      <FlatList
+        data={formatted.map(item => {
+          var dataArr = { key: item };
+          return dataArr;
+        })}
+        numColumns={formatted.length}
+        style={{ flex: 1, alignSelf: "stretch", backgroundColor: "#a52b2a" }}
+        renderItem={({ item }) => <Text style={styles.header}>{this.replaceAll(item.key,"-",".")}</Text>}
+      />
+    );
+    //Указываем даты
+    this.setState({ dates: formatted });
+    //Формируем объект, который отошлём в TableFormatter
+    var data = {};
+    var dates = [];
+    for (var i = 0; i < formatted.length; i++) {
+      var pa = await Network.GetTimesAll(
+        this.state.token,
+        this.state.doctorId,
+        formatted[i],
+        this.state.url,
+        this.state.port
+      );
+      var form = pa.rows.row.map(item => {
+        var p = null;
+        if (Object.entries(item.id).length === 0) {
+          p = {
+            visitNum: "", //Цель визита 
+            time: item.name,
+            doctorId: this.state.doctorId,
+            date: formatted[i],
+            name: "" //Имя пациента
+          };
+        } else {
+          p = {
+            visitNum: item.id.split(",")[1], //Цель визита 
+            time: item.name,
+            doctorId: this.state.doctorId,
+            date: formatted[i],
+            name: item.id.split(", ")[0] //Имя пациента
+          };
+        }
+        return p;
+      });
+      dates.push({
+        date: formatted[i],
+        cells: form
+      });
+    }
+    data.dates = dates;
+    this.setState({ listOfCells: this.TableFormatter(data), date: datesl.slice(0, 10).replace(/-/g, "-") });
   }
   constructor(props) {
     super(props);
