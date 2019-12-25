@@ -11,7 +11,7 @@ import {
   PixelRatio,
   Alert,BackHandler
 } from "react-native";
-import { Container, Header, Body } from "native-base";
+import { Container, Header, Body, Spinner } from "native-base";
 import DateTimePicker from "react-native-modal-datetime-picker";
 import Icon2 from "react-native-vector-icons/FontAwesome";
 import * as Font from "expo-font";
@@ -31,6 +31,7 @@ export class AdminTimeTable extends React.Component {
     };
   };
   state = {
+    refreshing : false,
     list: null,
     loading: true,
     token: this.props.navigation.state.params.data.token,
@@ -72,8 +73,8 @@ export class AdminTimeTable extends React.Component {
 
   dateChangedApiCall(datesl) {
     console.log("ИЗМЕНИЛОСЬ НА " + datesl);
-    this.setState({ date: datesl.slice(0, 10).replace(/-/g, "-") }, () => {
-      this.initApiCall();
+    this.setState({ date: datesl.slice(0, 10).replace(/-/g, "-"), refreshing : true }, () => {
+      this.initialApiCall();
     });
   }
 
@@ -145,7 +146,7 @@ export class AdminTimeTable extends React.Component {
       );
     }
     console.log("Получил все расписания\nТеперь время нормализовать пары");
-    this.setState({ docList: formatted, docInfo: docData });
+    this.setState({ docList: formatted, docInfo: docData, refreshing : false });
     this.setState({ loading: false });
   }
 
@@ -391,9 +392,33 @@ kab - № кабинета
     }
     return result;
   }
+
+  refreshingSpinner() {
+    if (this.state.refreshing) {
+      return (
+          <View
+            style={{
+              flex: 1,
+              width : "100%",
+              height : "100%",
+              backgroundColor: "rgba(0,0,0,0.05)",
+              flexDirection: "row",
+              justifyContent: "center",
+              alignItems: "center",
+              paddingTop: 8,
+              zIndex : 200,
+              position : "absolute"
+            }}
+          >
+            <Spinner color="red" />
+          </View>
+      );
+    }
+  }
+
   render() {
     if (this.state.loading) {
-      return <View></View>;
+      return <View style={{flex : 1, flexDirection : 'column', justifyContent : 'center'}}><Spinner color='red' /></View>;
     } else
       return (
         <Container onLayout={this.onLayout.bind(this)}>
@@ -422,6 +447,7 @@ kab - № кабинета
             </Body>
           </Header>
           {this.drawEditTable()}
+          {this.refreshingSpinner()}
           <FlatList
             data={this.generateTable(this.state.maxDocs)}
             renderItem={({ item }) => item}
