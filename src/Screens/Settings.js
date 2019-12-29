@@ -7,8 +7,10 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
-  Picker
+  Picker,
+  Platform
 } from "react-native";
+import ModalSelector from "react-native-modal-selector";
 import { Container, Header, Content, Form, Right } from "native-base";
 import EditIcon from "react-native-vector-icons/Feather";
 import * as SecureStore from "expo-secure-store";
@@ -50,10 +52,10 @@ export class Settings extends React.Component {
       SecureStore.deleteItemAsync("blocktype");
       SecureStore.deleteItemAsync("lockpass");
     } else {
-      console.log("Setting touch id")
+      console.log("Setting touch id");
       if (this.state.lockScreenMethod == "touchid") {
         SecureStore.setItemAsync("blocktype", "touchid");
-        SecureStore.setItemAsync("locking","1");
+        SecureStore.setItemAsync("locking", "1");
       }
     }
   }
@@ -70,14 +72,14 @@ export class Settings extends React.Component {
     await SecureStore.deleteItemAsync("locking");
     await SecureStore.deleteItemAsync("blocktype");
     await SecureStore.deleteItemAsync("lockpass");
-    return this.props.navigation.navigate("Login", { extra:"LOGOUT" });
+    return this.props.navigation.navigate("Login", { extra: "LOGOUT" });
   }
 
   changedMethod(data) {
     console.log("changed method");
     if (data == "touchid") {
       SecureStore.setItemAsync("blocktype", "touchid");
-      SecureStore.setItemAsync("locking","1");
+      SecureStore.setItemAsync("locking", "1");
     } else
       Alert.alert(
         "Информация!",
@@ -92,44 +94,67 @@ export class Settings extends React.Component {
   render() {
     if (this.state.isLoading) {
       return <View></View>;
-    } else
-      return (
-        <ScrollView
-          style={{
-            flexDirection: "column",
-            backgroundColor: "#f1fff0",
-            flex: 1
+    } else var lsm = "Нет";
+    if (this.state.LockScreenMethod == "password") {
+      lsm = "Пароль";
+    }
+    if (this.state.LockScreenMethod == "touchid") {
+      lsm = "Touch Id";
+    }
+    var LSM;
+    if (Platform.OS === "ios") {
+      LSM = (
+        <LockScreenMethodIOS
+          useLockScreen={this.state.useLockScreen}
+          lockScreenMethod={lsm}
+          onSwitchCallBack={method => {
+            this.setState({ lockScreenMethod: method });
+            this.changedMethod(method);
           }}
-        >
-          <Divider text={"Настройки приложения"} />
-          <EditClinicId id={""} />
-          <Divider text={"Настройки конфиденциальности"} />
-          <LockScreenStateSwitcher
-            useLockScreen={this.state.useLockScreen}
-            onSwitchCallBack={() => {
-              this.setState({ useLockScreen: !this.state.useLockScreen });
-              this.switched();
-            }}
-          />
-          <LockScreenMethod
-            useLockScreen={this.state.useLockScreen}
-            lockScreenMethod={this.state.lockScreenMethod}
-            onSwitchCallBack={method => {
-              this.setState({ lockScreenMethod: method });
-              this.changedMethod(method);
-            }}
-          />
-          <SetPassword
-            useLockScreen={this.state.useLockScreen}
-            lockScreenMethod={this.state.lockScreenMethod}
-            password={this.state.password}
-            onSwitchCallBack={pass => this.setState({ password: pass })}
-            activated={false}
-          />
-          <Divider text={"Настройки пользователя"} />
-          <LogOut onLogOut={() => this.onLogOut()} />
-        </ScrollView>
+        />
       );
+    } else {
+      LSM = (
+        <LockScreenMethod
+          useLockScreen={this.state.useLockScreen}
+          lockScreenMethod={this.state.LockScreenMethod}
+          onSwitchCallBack={method => {
+            this.setState({ lockScreenMethod: method });
+            this.changedMethod(method);
+          }}
+        />
+      );
+    }
+    return (
+      <ScrollView
+        style={{
+          flexDirection: "column",
+          backgroundColor: "#f1fff0",
+          flex: 1
+        }}
+      >
+        <Divider text={"Настройки приложения"} />
+        <EditClinicId id={""} />
+        <Divider text={"Настройки конфиденциальности"} />
+        <LockScreenStateSwitcher
+          useLockScreen={this.state.useLockScreen}
+          onSwitchCallBack={() => {
+            this.setState({ useLockScreen: !this.state.useLockScreen });
+            this.switched();
+          }}
+        />
+        {LSM}
+        <SetPassword
+          useLockScreen={this.state.useLockScreen}
+          lockScreenMethod={this.state.lockScreenMethod}
+          password={this.state.password}
+          onSwitchCallBack={pass => this.setState({ password: pass })}
+          activated={false}
+        />
+        <Divider text={"Настройки пользователя"} />
+        <LogOut onLogOut={() => this.onLogOut()} />
+      </ScrollView>
+    );
   }
 }
 
@@ -190,16 +215,16 @@ class EditClinicId extends React.Component {
 
   onEndEditingProcessor() {
     this.setState({ showIcon: true });
-    if(!isNaN(this.state.id)){
-    SecureStore.setItemAsync("timeout", this.state.id);
-    } else{
+    if (!isNaN(this.state.id)) {
+      SecureStore.setItemAsync("timeout", this.state.id);
+    } else {
       Alert.alert(
         "Ошибка",
         "Интервал запроса может быть только числом",
         [{ text: "OK", onPress: () => console.log("OK Pressed") }],
         { cancelable: false }
       );
-      this.setState({id:""})
+      this.setState({ id: "" });
     }
   }
 
@@ -207,7 +232,7 @@ class EditClinicId extends React.Component {
     var timeout = await SecureStore.getItemAsync("timeout");
     if (timeout != null) {
       this.setState({ id: timeout });
-    } else{
+    } else {
       this.setState({ id: 50 });
     }
   }
@@ -257,7 +282,7 @@ class EditClinicId extends React.Component {
           >
             <View style={{ flexDirection: "column", justifyContent: "center" }}>
               <TextInput
-                            keyboardType={"numeric"}
+                keyboardType={"numeric"}
                 value={this.state.id}
                 style={{ fontSize: 20 }}
                 onChangeText={data => this.setState({ id: data })}
@@ -290,7 +315,7 @@ class LockScreenStateSwitcher extends React.Component {
           </View>
           <View>
             <Text style={{ fontSize: 12, color: "grey" }}>
-            Аутентификация при входе в приложение
+              Аутентификация при входе в приложение
             </Text>
           </View>
         </View>
@@ -401,6 +426,88 @@ class LockScreenMethod extends React.Component {
                 value="touchid"
               />
             </Picker>
+          </View>
+        </View>
+      );
+    }
+  }
+}
+class LockScreenMethodIOS extends React.Component {
+  render() {
+    if (this.props.useLockScreen == false) {
+      return (
+        <View style={{ flexDirection: "row", padding: 20 }}>
+          <View
+            style={{
+              flex: 1.5,
+              flexDirection: "column",
+              justifyContent: "center"
+            }}
+          >
+            <View>
+              <Text style={{ fontSize: 20 }}>Метод авторизации</Text>
+            </View>
+          </View>
+          <View
+            style={{
+              minWidth: 100,
+              maxWidth: 130,
+              flex: 0.5,
+              flexDirection: "row",
+              justifyContent: "flex-end"
+            }}
+          >
+            <ModalSelector
+              data={[
+                { key: 1, label: "Пароль", value: "password" },
+                { key: 2, label: "Touch Id", value: "touchid" }
+              ]}
+              selectStyle={{ borderWidth: 0 }}
+              disabled={true}
+              initValue={this.props.lockScreenMethod}
+              style={{ borderWidth: 0, color: "black", borderColor: "black" }}
+              onChange={option => {
+                this.props.onSwitchCallBack(option.value);
+              }}
+            />
+          </View>
+        </View>
+      );
+    } else {
+      return (
+        <View style={{ flexDirection: "row", padding: 20 }}>
+          <View
+            style={{
+              flex: 1.5,
+              flexDirection: "column",
+              justifyContent: "center"
+            }}
+          >
+            <View>
+              <Text style={{ fontSize: 20 }}>Метод авторизации</Text>
+            </View>
+          </View>
+          <View
+            style={{
+              minWidth: 100,
+              maxWidth: 130,
+              flex: 0.5,
+              flexDirection: "row",
+              justifyContent: "flex-end"
+            }}
+          >
+            <ModalSelector
+              data={[
+                { key: 1, label: "Пароль", value: "password" },
+                { key: 2, label: "Touch Id", value: "touchid" }
+              ]}
+              initValueTextStyle={{ color: "black", borderWidth: 0 }}
+              selectStyle={{ borderWidth: 0 }}
+              initValue={this.props.lockScreenMethod}
+              onChange={option => {
+                this.props.onSwitchCallBack(option.value);
+              }}
+            />
           </View>
         </View>
       );
