@@ -7,11 +7,10 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
-  Picker,
   Platform
 } from "react-native";
 import ModalSelector from "react-native-modal-selector";
-import { Container, Header, Content, Form, Right } from "native-base";
+import { Container, Header, Content, Form, Right, Picker } from "native-base";
 import EditIcon from "react-native-vector-icons/Feather";
 import * as SecureStore from "expo-secure-store";
 
@@ -103,7 +102,7 @@ export class Settings extends React.Component {
     }
     var LSM;
     if (Platform.OS === "ios") {
-      LSM = (
+      LSM = 
         <LockScreenMethodIOS
           useLockScreen={this.state.useLockScreen}
           lockScreenMethod={lsm}
@@ -112,18 +111,18 @@ export class Settings extends React.Component {
             this.changedMethod(method);
           }}
         />
-      );
+      
     } else {
-      LSM = (
+      LSM = 
         <LockScreenMethod
           useLockScreen={this.state.useLockScreen}
-          lockScreenMethod={this.state.LockScreenMethod}
+          lockScreenMethod={this.state.lockScreenMethod}
           onSwitchCallBack={method => {
             this.setState({ lockScreenMethod: method });
             this.changedMethod(method);
           }}
         />
-      );
+      
     }
     return (
       <ScrollView
