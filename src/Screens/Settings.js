@@ -42,6 +42,7 @@ export class Settings extends React.Component {
       }
     }
     this.setState({ isLoading: false });
+    console.log(this.state.lockScreenMethod)
   }
 
   callbacker() {
@@ -94,12 +95,13 @@ export class Settings extends React.Component {
     if (this.state.isLoading) {
       return <View></View>;
     } else var lsm = "Нет";
-    if (this.state.LockScreenMethod == "password") {
+    if (this.state.lockScreenMethod == "password") {
       lsm = "Пароль";
     }
-    if (this.state.LockScreenMethod == "touchid") {
+    if (this.state.lockScreenMethod == "touchid") {
       lsm = "Touch Id";
     }
+    console.log(lsm)
     var LSM;
     if (Platform.OS === "ios") {
       LSM = 

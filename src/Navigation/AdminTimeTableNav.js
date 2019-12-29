@@ -36,7 +36,7 @@ const MainNavigator = createStackNavigator(
     },
     {
         initialRouteName : 'Login',
-    }
+    },
 );
   
 const AdminTimeTableNav = createAppContainer(MainNavigator);

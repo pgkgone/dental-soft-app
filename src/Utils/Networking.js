@@ -159,7 +159,7 @@ class Network {
     port,
     timeout
   ) {
-    console.log("new")
+    console.log("new2")
     await this.sleep(timeout);
     var body =
       '<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><EditGrvData xmlns="urn:grvssl"><tokenId>' +
@@ -200,10 +200,11 @@ class Network {
       })
         .then(response => {
           var d = response.data;
+          console.log(d)
           if (d.includes("STATE-OK")) {
             Alert.alert(
               "Ок",
-              "Успешно изменено, обновляю данные",
+              "Успешно изменено, данные обновляются",
               [{ text: "OK", onPress: () => {} }],
               { cancelable: true }
             );
@@ -228,7 +229,7 @@ class Network {
           if (d.includes("STATE-OK")) {
             Alert.alert(
               "Ок",
-              "Успешно изменено, обновляю данные",
+              "Успешно изменено, данные обновляются",
               [{ text: "OK", onPress: () => {} }],
               { cancelable: true }
             );
@@ -246,7 +247,6 @@ class Network {
               }
             }
             if(msg==="") msg="Превышен лимит ожидания от сервера"
-            console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
             Alert.alert("Ошибка", msg, [{ text: "OK", onPress: () => {} }], {
               cancelable: true
             });
@@ -293,7 +293,7 @@ class Network {
           if (d.includes("STATE-OK")) {
             Alert.alert(
               "Ок",
-              "Успешно изменено, изменяю данные",
+              "Успешно изменено, данные обновляются",
               [{ text: "OK", onPress: () => {} }],
               { cancelable: true }
             );
@@ -313,7 +313,7 @@ class Network {
           if (d.includes("STATE-OK")) {
             Alert.alert(
               "Ок",
-              "Успешно изменено, изменяю данные",
+              "Успешно изменено, данные обновляются",
               [{ text: "OK", onPress: () => {} }],
               { cancelable: true }
             );

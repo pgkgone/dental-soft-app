@@ -24,6 +24,7 @@ import * as SecureStore from "expo-secure-store";
 import fetch from "./Utils/fetchWithTimeout";
 import Network from "./Utils/Networking";
 import Lock from "./Lock";
+import * as LocalAuthentication from "expo-local-authentication";
 
 export class Login extends React.Component {
   constructor(props) {
@@ -53,15 +54,12 @@ export class Login extends React.Component {
   };
 
   componentDidUpdate(prevProps, prevState, snapshot) {
-    console.log("updated")
     if(this.props != prevProps){
-      console.log("tyt")
     this.setState({username:"",password:"",first:true, isLocked:false, lockingType:null, cid:""})
     }
   }
 
   async login() {
-    console.log("Пробую авторизоваться")
     if (
       this.state.username == "" ||
       this.state.password == "" ||
@@ -96,7 +94,6 @@ export class Login extends React.Component {
       this.state.username +
       "&doc_pass_"+ this.state.cid+"=" +
       this.state.password;
-    console.log(url);
     let data = await fetch(
       url,
       {
@@ -143,16 +140,12 @@ export class Login extends React.Component {
       if (this.state.first) {
         await SecureStore.setItemAsync("cid", this.state.cid);
       }
-      console.log("ok auth");
       var d = data.split(":");
-      console.log(d);
       if (d[0] == "registry") {
         //GOTO REGISTRY SCREEN
-        console.log("Перед нами администратор");
         return this.props.navigation.navigate("AdminTimeTable", {data:{token:d[4],url:d[2], port:d[3]}});
       } else {
         //GOTO DOCTOR SCREEN
-        console.log("Перед нами доктор");
         return this.props.navigation.navigate("DoctorTimeTable",  {data:{token:d[4],url:d[2], port:d[3], doctorId:d[1]}});
       }
 
@@ -170,9 +163,7 @@ export class Login extends React.Component {
       if (d.includes(":")) {
         var parsed = d.split(":");
         this.setState({ username: parsed[0], password: parsed[1] });
-        console.log("heeeeee")
         this.tryAutoAuth()
-        console.log("here")
       }
     }
   }
@@ -188,7 +179,6 @@ export class Login extends React.Component {
     }
   }
   async tryAutoAuth() {
-    console.log("autologin")
     this.login()
   }
   async componentWillUnmount() {
@@ -196,7 +186,6 @@ export class Login extends React.Component {
   }
 
   async autoAuthAfterLock(){
-    console.log("вызван")
     await this.isFirstLaunch();
     await this.checkSavedLoginPass();
   }
@@ -204,10 +193,8 @@ export class Login extends React.Component {
     var d = await SecureStore.getItemAsync("locking");
     if (d == "1") {
       var type = await SecureStore.getItemAsync("blocktype");
-      console.log(type);
       if (type == "password") {
         var pass = await SecureStore.getItemAsync("lockpass");
-        console.log(pass);
         this.setState({
           lockingType: "password",
           lockingPass: pass,
@@ -220,7 +207,6 @@ export class Login extends React.Component {
     }
   }
   async componentDidMount() {
-    console.log("запуск логина");
     await Font.loadAsync({
       Roboto_medium: require("native-base/Fonts/Roboto_medium.ttf")
     });
@@ -234,6 +220,12 @@ export class Login extends React.Component {
   }
   async standart(){
     await this.isFirstLaunch();
+    try{
+      
+      //LocalAuthentication.cancelAuthenticate()
+    }catch(e){
+      console.log(e)
+    }
     this.setState({username:"", password:"", isLocked:false})
   }
   render() {

@@ -446,7 +446,9 @@ kab - № кабинета
             style={{
               flexDirection: "row",
               justifyContent: "center",
-              backgroundColor: "#a52b2a"
+              backgroundColor: "#a52b2a",
+              shadowOpacity: 0, //for ios
+              borderBottomWidth: 0, //for ios
             }}
           >
             <Body

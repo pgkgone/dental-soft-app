@@ -45,7 +45,7 @@ export class Lock extends React.Component {
     type: this.props.type,
     truePass: this.props.passCode,
     func: this.props.func,
-    text:"Войти с помощь отпечатка пальца"
+    text:"Войдите с помощью отпечатка пальца прикоснувшись к сканнеру"
   };
 
   inputProcessor(v) {
@@ -132,7 +132,8 @@ export class Lock extends React.Component {
                     fontWeight: "bold",
                     fontSize: 20,
                     alignSelf: "center",
-                    marginBottom: 17
+                    marginBottom: 17,
+                    textAlign:'center'
                   }}
                 >
                   {this.state.text}
