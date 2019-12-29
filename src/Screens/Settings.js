@@ -6,9 +6,10 @@ import {
   View,
   TextInput,
   TouchableOpacity,
-  Alert
+  Alert,
+  Picker
 } from "react-native";
-import { Container, Header, Content, Picker, Form, Right } from "native-base";
+import { Container, Header, Content, Form, Right } from "native-base";
 import EditIcon from "react-native-vector-icons/Feather";
 import * as SecureStore from "expo-secure-store";
 
@@ -170,7 +171,7 @@ class Divider extends React.Component {
             color: "grey",
             fontSize: 20,
             borderBottomWidth: 0.5,
-            textAlign: "center"
+            textAlign: "left"
           }}
         >
           {this.props.text}
@@ -337,7 +338,7 @@ class LockScreenMethod extends React.Component {
             <Picker
               mode="dropdown"
               enabled={false}
-              style={{ width: 20, color: "gray" }}
+              style={{ width: 120, color: "gray" }}
               selectedValue={this.props.lockScreenMethod}
               onValueChange={itemValue =>
                 this.props.onSwitchCallBack(itemValue)
@@ -383,7 +384,7 @@ class LockScreenMethod extends React.Component {
             <Picker
               mode="dropdown"
               textStyle={{ color: "black" }}
-              style={{ width: 20, color: "black" }}
+              style={{ width: 120, color: "black" }}
               selectedValue={this.props.lockScreenMethod}
               onValueChange={itemValue =>
                 this.props.onSwitchCallBack(itemValue)
