@@ -14,7 +14,7 @@ import {
   Item,
   Input,
   Label,
-  Toast
+  Toast,TextInput
 } from "native-base";
 import { Alert, StyleSheet, View } from "react-native";
 import * as FileSystem from "expo-file-system";
@@ -75,12 +75,26 @@ export class Login extends React.Component {
       );
       return;
     }
+
+    /// Сука только посмей блядь пропатчить
+    if(this.state.cid !="demo" && this.state.cid!="xydik"){
+      Alert.alert(
+        "Демо версия",
+        "Возможна только demo/xydik клиника",
+        [{ text: "OK", onPress: () => console.log("OK Pressed") }],
+        { cancelable: false }
+      );
+      this.setState({first:true})
+      return
+    }
+
+    //
     var url =
       "https://online.dental-soft.ru/docs_test.php?ID=" +
       this.state.cid +
-      "&doc_name_demo=" +
+      "&doc_name_"+ this.state.cid+"=" +
       this.state.username +
-      "&doc_pass_demo=" +
+      "&doc_pass_"+ this.state.cid+"=" +
       this.state.password;
     console.log(url);
     let data = await fetch(
@@ -88,7 +102,7 @@ export class Login extends React.Component {
       {
         method: "POST"
       },
-      5000
+      9000
     )
       .then(response => response.text())
       .catch(err => {
@@ -224,7 +238,13 @@ export class Login extends React.Component {
   }
   render() {
     if (this.state.loading) {
-      return <View></View>;
+      return (
+        <Container>
+        <Content style={this.styles.content} padder>
+        </Content>
+      </Container>
+
+      );
     } else {
       if (this.state.isLocked) {
         return (
@@ -243,6 +263,7 @@ export class Login extends React.Component {
                 <Item floatingLabel>
                   <Label>Имя пользователя</Label>
                   <Input
+                    autoCapitalize="none"
                     onChangeText={v => this.setState({ username: v })} //(v)=>this.setState({"username":v}
                     value={this.state.username}
                   />
@@ -259,6 +280,7 @@ export class Login extends React.Component {
                   <Item floatingLabel>
                     <Label>ID клиники</Label>
                     <Input
+                      autoCapitalize="none"
                       value={this.state.cid}
                       onChangeText={v => this.setState({ cid: v })}
                     />

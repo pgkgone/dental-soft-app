@@ -1,192 +1,150 @@
-import {
-  Alert
-} from "react-native";
+import { Alert } from "react-native";
 import * as soap from "soap-everywhere";
+import { Content } from "native-base";
 class Network {
   //TODO PORT SUPPORT
 
+  static sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
   static url = "http://vds.dental-soft.ru:2102/?wsdl";
-  static timeout = 7000;
+  static timeout = 16000;
   static getUrl(url, port) {
     return "http://" + url + ":" + port + "/?wsdl";
   }
-  static async GetDates(token, id, url, port) {
-    var __xmlattr = "<tokenId>" + token + "</tokenId><docId>" + id + "</docId>";
+
+  static async GetDocsAll(token, date, url, port, timeout) {
+    await this.sleep(timeout);
+    var body =
+      '<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><GetDocsAll xmlns="urn:grvssl"><tokenId>' +
+      token +
+      "</tokenId>" +
+      "<datez>" +
+      date +
+      "</datez></GetDocsAll></Body></Envelope>";
+    console.log(body);
+    const axios = require("axios");
     return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error("promise timeout"));
-      }, Network.timeout);
-      soap.createClient(this.getUrl(url, port), function(err, client) {
-        if (err != null) reject(err);
-        client.GetDates({ _xml: __xmlattr }, function(err, result) {
-          if (err == null) {
-            clearTimeout(timeoutId);
+      axios({
+        method: "post",
+        url: this.getUrl(url, port),
+        timeout: 15000, // Wait for 15 seconds
+        data: body,
+        headers: {
+          "Content-Type": "text/plain",
+          "User-Agent": "PostmanRuntime/7.21.0",
+          Accept: "*/*",
+          "Cache-Control": "no-cache",
+          Host: url + ":" + port,
+          "Accept-Encoding": "gzip, deflate",
+          "Content-Length": body.length
+        }
+      })
+        .then(response => {
+          var d = response.data;
+          var index = d.indexOf("<rows>");
+          var parsed = d.substr(index, d.indexOf("</rows>") - index + 7);
+          var xml2js = require("xml2js");
+          var parser = new xml2js.Parser({ explicitArray: false });
+          parser.parseString(parsed, function(err, result) {
             resolve(result);
-          } else {
-            clearTimeout(timeoutId);
-            reject(err);
-          }
+          });
+        })
+        .catch(error => {
+          reject(new Error("Error"));
         });
-      });
     });
   }
 
-  static async GetDocs(token, id, url, port) {
-    var __xmlattr = "<tokenId>" + token + "</tokenId><docId>" + id + "</docId>";
-    return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error("promise timeout"));
-      }, Network.timeout);
-      soap.createClient(this.getUrl(url, port), function(err, client) {
-        if (err != null) reject(err);
-        client.GetDocs({ _xml: __xmlattr }, function(err, result) {
-          if (err == null) {
-            clearTimeout(timeoutId);
-            resolve(result);
-          } else {
-            clearTimeout(timeoutId);
-            reject(err);
-          }
-        });
-      });
-    });
-  }
-
-  static async GetDocsAll(token, date, url, port) {
-    console.log("Enter req");
-    var __xmlattr =
-      "<tokenId>" + token + "</tokenId><datez>" + date + "</datez>";
-    return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error("promise timeout"));
-      }, Network.timeout);
-      soap.createClient(this.getUrl(url, port), function(err, client) {
-        if (err != null) reject(err);
-        client.GetDocsAll({ _xml: __xmlattr }, function(err, result) {
-          if (err == null) {
-            clearTimeout(timeoutId);
-            resolve(result);
-          } else {
-            clearTimeout(timeoutId);
-            reject(err);
-          }
-        });
-      });
-    });
-  }
-
-  static async GetTimes(token, id, date, url, port) {
-    var __xmlattr =
-      "<tokenId>" +
+  static async GetTimesAll(token, id, date, url, port, timeout) {
+    console.log("GetTimes");
+    await this.sleep(timeout);
+    var body =
+      '<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><GetTimesAll xmlns="urn:grvssl"><tokenId>' +
       token +
       "</tokenId><docId>" +
       id +
       "</docId><datez>" +
       date +
-      "</datez>";
+      "</datez></GetTimesAll></Body></Envelope>";
+    console.log(body);
+    const axios = require("axios");
     return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error("promise timeout"));
-      }, Network.timeout);
-      soap.createClient(this.getUrl(url, port), function(err, client) {
-        if (err != null) reject(err);
-        client.GetTimes({ _xml: __xmlattr }, function(err, result) {
-          if (err == null) {
-            clearTimeout(timeoutId);
+      axios({
+        method: "post",
+        url: this.getUrl(url, port),
+        timeout: 15000, // Wait for 15 seconds
+        data: body,
+        headers: {
+          "Content-Type": "text/plain",
+          "User-Agent": "PostmanRuntime/7.21.0",
+          Accept: "*/*",
+          "Cache-Control": "no-cache",
+          Host: url + ":" + port,
+          "Accept-Encoding": "gzip, deflate",
+          "Content-Length": body.length
+        }
+      })
+        .then(response => {
+          var d = response.data;
+          var index = d.indexOf("<rows>");
+          var parsed = d.substr(index, d.indexOf("</rows>") + 7 - index);
+          var xml2js = require("xml2js");
+          var parser = new xml2js.Parser({ explicitArray: false });
+          parser.parseString(parsed, function(err, result) {
             resolve(result);
-          } else {
-            clearTimeout(timeoutId);
-            reject(err);
-          }
+          });
+        })
+        .catch(error => {
+          reject(new Error("Error"));
         });
-      });
     });
   }
 
-  static async GetTimesAll(token, id, date, url, port) {
-    var __xmlattr =
-      "<tokenId>" +
+  static async GetDatesAll(token, id, date, url, port, timeout) {
+    await this.sleep(timeout);
+    var body =
+      '<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><GetDatesAll xmlns="urn:grvssl"><tokenId>' +
       token +
       "</tokenId><docId>" +
       id +
       "</docId><datez>" +
       date +
-      "</datez>";
+      "</datez></GetDatesAll></Body></Envelope>";
+    console.log(body);
+    const axios = require("axios");
     return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error("promise timeout"));
-      }, Network.timeout);
-      soap.createClient(this.getUrl(url, port), function(err, client) {
-        if (err != null) reject(err);
-        client.GetTimesAll({ _xml: __xmlattr }, function(err, result) {
-          if (err == null) {
-            clearTimeout(timeoutId);
+      axios({
+        method: "post",
+        url: this.getUrl(url, port),
+        timeout: 15000, // Wait for 15 seconds
+        data: body,
+        headers: {
+          "Content-Type": "text/plain",
+          "User-Agent": "PostmanRuntime/7.21.0",
+          Accept: "*/*",
+          "Cache-Control": "no-cache",
+          Host: url + ":" + port,
+          "Accept-Encoding": "gzip, deflate",
+          "Content-Length": body.length
+        }
+      })
+        .then(response => {
+          var d = response.data;
+          var index = d.indexOf("<rows>");
+          var parsed = d.substr(index, d.indexOf("</rows>") - index + 7);
+          var xml2js = require("xml2js");
+          var parser = new xml2js.Parser({ explicitArray: false });
+          parser.parseString(parsed, function(err, result) {
             resolve(result);
-          } else {
-            clearTimeout(timeoutId);
-            reject(err);
-          }
+          });
+        })
+        .catch(error => {
+          reject(new Error("Error"));
         });
-      });
     });
   }
-
-  static async GetDatesAll(token, id, date, url, port) {
-    var __xmlattr =
-      "<tokenId>" +
-      token +
-      "</tokenId><docId>" +
-      id +
-      "</docId><datez>" +
-      date +
-      "</datez>";
-    return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error("promise timeout"));
-      }, Network.timeout);
-      soap.createClient(this.getUrl(url, port), function(err, client) {
-        if (err != null) reject(err);
-        client.GetDatesAll({ _xml: __xmlattr }, function(err, result) {
-          if (err == null) {
-            clearTimeout(timeoutId);
-            resolve(result);
-          } else {
-            clearTimeout(timeoutId);
-            reject(err);
-          }
-        });
-      });
-    });
-  }
-
-  static async GetDates(token, id, date, url, port) {
-    var __xmlattr =
-      "<tokenId>" +
-      token +
-      "</tokenId><docId>" +
-      id +
-      "</docId><datez>" +
-      date +
-      "</datez>";
-    return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error("promise timeout"));
-      }, Network.timeout);
-      soap.createClient(this.getUrl(url, port), function(err, client) {
-        if (err != null) reject(err);
-        client.GetDates({ _xml: __xmlattr }, function(err, result) {
-          if (err == null) {
-            clearTimeout(timeoutId);
-            resolve(result);
-          } else {
-            clearTimeout(timeoutId);
-            reject(err);
-          }
-        });
-      });
-    });
-  }
-
 
   static async EditGrvData2(
     token,
@@ -198,91 +156,110 @@ class Network {
     nvr,
     kab,
     url,
-    port
-  ){
-    var body ='<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><EditGrvData xmlns="urn:grvssl"><tokenId>'+token+'</tokenId><docId>'+id+'</docId><datez>'+date+'</datez><timez>'+time+'</timez><mk>'+mk+'</mk><prim>'+prim+'</prim><nvr>'+nvr+'</nvr><kab>'+kab+'</kab></EditGrvData></Body></Envelope>'
-    var data = await fetch(
-    this.getUrl(url, port),
-    {
-      method: "POST",
-      body:body
-    },
-    7000
-  )
-    .then(response => response.text())
-    .catch(e => {
-      Alert.alert(
-        "Ошибка",
-        "Превышен лимит ожидания ответа от сервера",
-        [{ text: "OK", onPress: () => {} }],
-        { cancelable: true }
-      );
-    });
-    console.log(data.includes("Нет такого № кабинета"))
-    if(data.includes("Нет такого № кабинета")){
-      console.log("тут должен быть алерт")
-      Alert.alert(
-        "Ошибка",
-        "Нет такого кабинета",
-        [{ text: "OK", onPress: () => {} }],
-        { cancelable: true }
-      );
-    }
-  }
-  static async EditGrvData(
-    token,
-    id,
-    date,
-    time,
-    mk,
-    prim,
-    nvr,
-    kab,
-    url,
-    port
+    port,
+    timeout
   ) {
-    if (Object.entries(mk).length === 0 && mk.constructor === Object) {
-      mk = "";
-    }
-    console.log("here");
-    var __xmlattr =
-      "<tokenId>" +
+    console.log("new")
+    await this.sleep(timeout);
+    var body =
+      '<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><EditGrvData xmlns="urn:grvssl"><tokenId>' +
       token +
       "</tokenId><docId>" +
       id +
       "</docId><datez>" +
       date +
-      "</datez>" +
-      "<timez>" +
+      "</datez><timez>" +
       time +
-      "</timez>" +
-      "<mk>" +
+      "</timez><mk>" +
       mk +
-      "</mk>" +
-      "<prim>" +
+      "</mk><prim>" +
       prim +
-      "</prim>" +
-      "<nvr>" +
+      "</prim><nvr>" +
       nvr +
-      "</nvr>" +
-      "<kab>" +
+      "</nvr><kab>" +
       kab +
-      "</kab>";
-    soap.createClient(this.getUrl(url, port), function(err, client) {
-      if (err != null) reject(err);
-      client.EditGrvData({ _xml: __xmlattr }, function(err, result) {
-        if (err == null) {
-        } else {
-          clearTimeout(timeoutId);
-            reject(err);
+      "</kab></EditGrvData></Body></Envelope>";
+
+    console.log(body);
+    const axios = require("axios");
+    return new Promise((resolve, reject) => {
+      axios({
+        method: "post",
+        url: this.getUrl(url, port),
+        timeout: 15000, // Wait for 15 seconds
+        data: body,
+        headers: {
+          "Content-Type": "text/plain",
+          "User-Agent": "PostmanRuntime/7.21.0",
+          Accept: "*/*",
+          "Cache-Control": "no-cache",
+          Host: url + ":" + port,
+          "Accept-Encoding": "gzip, deflate",
+          "Content-Length": body.length
         }
-      });
+      })
+        .then(response => {
+          var d = response.data;
+          if (d.includes("STATE-OK")) {
+            Alert.alert(
+              "Ок",
+              "Успешно изменено, обновляю данные",
+              [{ text: "OK", onPress: () => {} }],
+              { cancelable: true }
+            );
+          } else {
+            var msg = "";
+            if (d.includes("Validation constraint violation")) {
+              msg = "Неверная норма времени";
+            } else {
+              if (d.includes("Нет такого")) {
+                msg = "Нет такого № кабинета " + kab;
+              }
+            }
+            Alert.alert("Ошибка", msg, [{ text: "OK", onPress: () => {} }], {
+              cancelable: true
+            });
+          }
+          resolve(d);
+        })
+        .catch((error) => {
+          console.log(error.response.data)
+          var d = error.response.data;
+          if (d.includes("STATE-OK")) {
+            Alert.alert(
+              "Ок",
+              "Успешно изменено, обновляю данные",
+              [{ text: "OK", onPress: () => {} }],
+              { cancelable: true }
+            );
+          } else {
+            var msg = "";
+            if (d.includes("Validation constraint violation")) {
+              msg = "Неверная норма времени";
+            } else {
+              if (d.includes("Нет такого")) {
+                msg = "Нет такого № кабинета " + kab;
+              } else{
+                if(d.includes("Слишком большое время")){
+                  msg="Слишком большое время на прием, так как кто-то уже записан на следующее время, конфликтующее с текущей нормой"
+                }
+              }
+            }
+            if(msg==="") msg="Превышен лимит ожидания от сервера"
+            console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+            Alert.alert("Ошибка", msg, [{ text: "OK", onPress: () => {} }], {
+              cancelable: true
+            });
+          }
+          reject(new Error("Error"));
+        });
     });
   }
 
-  static async DeleteGrvData(token, id, date, time, url, port) {
-    var __xmlattr =
-      "<tokenId>" +
+  static async DeleteGrvData(token, id, date, time, url, port, timeout) {
+    await this.sleep(timeout);
+    var body =
+      '<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><DeleteGrvData xmlns="urn:grvssl"><tokenId>' +
       token +
       "</tokenId><docId>" +
       id +
@@ -290,29 +267,75 @@ class Network {
       date +
       "</datez><timez>" +
       time +
-      "</timez>";
+      "</timez></DeleteGrvData></Body></Envelope>";
+    console.log(body);
+
+    console.log(body);
+    const axios = require("axios");
     return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error("promise timeout"));
-      }, Network.timeout);
-      soap.createClient(this.getUrl(url, port), function(err, client) {
-        if (err != null) reject(err);
-        client.DeleteGrvData({ _xml: __xmlattr }, function(err, result) {
-          if (err == null) {
-            clearTimeout(timeoutId);
-            resolve(result);
+      axios({
+        method: "post",
+        url: this.getUrl(url, port),
+        timeout: 15000, // Wait for 15 seconds
+        data: body,
+        headers: {
+          "Content-Type": "text/plain",
+          "User-Agent": "PostmanRuntime/7.21.0",
+          Accept: "*/*",
+          "Cache-Control": "no-cache",
+          Host: url + ":" + port,
+          "Accept-Encoding": "gzip, deflate",
+          "Content-Length": body.length
+        }
+      })
+        .then(response => {
+          var d = response.data;
+          if (d.includes("STATE-OK")) {
+            Alert.alert(
+              "Ок",
+              "Успешно изменено, изменяю данные",
+              [{ text: "OK", onPress: () => {} }],
+              { cancelable: true }
+            );
           } else {
-            clearTimeout(timeoutId);
-            reject(err);
+            Alert.alert(
+              "Ошибка",
+              "Невозможно удалить запись",
+              [{ text: "OK", onPress: () => {} }],
+              { cancelable: true }
+            );
           }
+          resolve(d);
+        })
+        .catch((error) => {
+          console.log(error)
+          var d = error.response.data;
+          if (d.includes("STATE-OK")) {
+            Alert.alert(
+              "Ок",
+              "Успешно изменено, изменяю данные",
+              [{ text: "OK", onPress: () => {} }],
+              { cancelable: true }
+            );
+          } else {
+            Alert.alert(
+              "Ошибка",
+              "Невозможно удалить запись или превышен лимит ожидания ответа от сервера",
+              [{ text: "OK", onPress: () => {} }],
+              { cancelable: true }
+            );
+          }
+          reject(new Error("Error"));
         });
-      });
     });
+ 
   }
 
-  static async GetGrvData(token, id, date, time, url, port) {
-    var __xmlattr =
-      "<tokenId>" +
+  static async GetGrvData(token, id, date, time, url, port, timeout) {
+    console.log(timeout)
+    await this.sleep(timeout);
+    var body =
+      '<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><GetGrvData xmlns="urn:grvssl"><tokenId>' +
       token +
       "</tokenId><docId>" +
       id +
@@ -320,141 +343,45 @@ class Network {
       date +
       "</datez><timez>" +
       time +
-      "</timez>";
+      "</timez></GetGrvData></Body></Envelope>";
+    console.log(body);
+    const axios = require("axios");
     return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error("promise timeout"));
-      }, Network.timeout);
-      soap.createClient(this.getUrl(url, port), function(err, client) {
-        if (err != null) reject(err);
-        client.GetGrvData({ _xml: __xmlattr }, function(err, result) {
-          if (err == null) {
-            clearTimeout(timeoutId);
+      axios({
+        method: "post",
+        url: this.getUrl(url, port),
+        timeout: 15000, // Wait for 15 seconds
+        data: body,
+        headers: {
+          "Content-Type": "text/plain",
+          "User-Agent": "PostmanRuntime/7.21.0",
+          Accept: "*/*",
+          "Cache-Control": "no-cache",
+          Host: url + ":" + port,
+          "Accept-Encoding": "gzip, deflate",
+          "Content-Length": body.length
+        }
+      })
+        .then(response => {
+          var d = response.data;
+          var index = d.indexOf('coding">');
+          console.log(index);
+          console.log(d.indexOf("</ns:grvdata>"));
+          var parsed = d.substr(
+            index + 8,
+            d.indexOf("</ns:grvdata>") - index - 8
+          );
+          console.log(parsed);
+          var xml2js = require("xml2js");
+          var parser = new xml2js.Parser({ explicitArray: false });
+          parsed = "<data>" + parsed + "</data>";
+          parser.parseString(parsed, function(err, result) {
             resolve(result);
-          } else {
-            clearTimeout(timeoutId);
-            reject(err);
-          }
+          });
+        })
+        .catch(error => {
+          reject(new Error("Error"));
         });
-      });
-    });
-  }
-
-  static async GetFio(token, id, url, port) {
-    var __xmlattr = "<tokenId>" + token + "</tokenId><docId>" + id + "</docId>";
-    return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error("promise timeout"));
-      }, Network.timeout);
-      soap.createClient(this.getUrl(url, port), function(err, client) {
-        if (err != null) reject(err);
-        client.GetFio({ _xml: __xmlattr }, function(err, result) {
-          if (err == null) {
-            clearTimeout(timeoutId);
-            resolve(result);
-          } else {
-            clearTimeout(timeoutId);
-            reject(err);
-          }
-        });
-      });
-    });
-  }
-
-  static async Reserv(token, id, date, time, fio, phone, mail, url, port) {
-    var __xmlattr =
-      "<tokenId>" +
-      token +
-      "</tokenId><docId>" +
-      id +
-      "</docId><datez>" +
-      date +
-      "</datez>" +
-      "<timez>" +
-      time +
-      "</timez>" +
-      "<fio>" +
-      fio +
-      "</fio>" +
-      "<cellphone>" +
-      phone +
-      "</cellphone>" +
-      "<email>" +
-      mail +
-      "</email>";
-    return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error("promise timeout"));
-      }, Network.timeout);
-      soap.createClient(this.getUrl(url, port), function(err, client) {
-        if (err != null) reject(err);
-        client.Reserv({ _xml: __xmlattr }, function(err, result) {
-          if (err == null) {
-            clearTimeout(timeoutId);
-            resolve(result);
-          } else {
-            clearTimeout(timeoutId);
-            reject(err);
-          }
-        });
-      });
-    });
-  }
-  static async Reserv2(
-    token,
-    id,
-    date,
-    time,
-    fio,
-    phone,
-    mail,
-    dr,
-    pol,
-    url,
-    port
-  ) {
-    var __xmlattr =
-      "<tokenId>" +
-      token +
-      "</tokenId><docId>" +
-      id +
-      "</docId><datez>" +
-      date +
-      "</datez>" +
-      "<timez>" +
-      time +
-      "</timez>" +
-      "<fio>" +
-      fio +
-      "</fio>" +
-      "<cellphone>" +
-      phone +
-      "</cellphone>" +
-      "<email>" +
-      mail +
-      "</email>" +
-      "<dr>" +
-      dr +
-      "</dr>" +
-      "<pol>" +
-      pol +
-      "</pol>";
-    return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error("promise timeout"));
-      }, Network.timeout);
-      soap.createClient(this.getUrl(url, port), function(err, client) {
-        if (err != null) reject(err);
-        client.Reserv2({ _xml: __xmlattr }, function(err, result) {
-          if (err == null) {
-            clearTimeout(timeoutId);
-            resolve(result);
-          } else {
-            clearTimeout(timeoutId);
-            reject(err);
-          }
-        });
-      });
     });
   }
 }

@@ -16,6 +16,7 @@ import { NavigationHeader } from "../Components/NavigationHeader";
 import { Cell } from "../Components/Cell";
 import { EditTable } from "../Components/EditTable";
 import Network from "../Utils/Networking";
+import * as SecureStore from "expo-secure-store";
 export class DoctorTimeTable extends React.Component {
   static navigationOptions = ({ navigation }) => {
     return {
@@ -30,6 +31,7 @@ export class DoctorTimeTable extends React.Component {
     listOfCells: null,
     doctorId: this.props.navigation.state.params.data.doctorId, //через пропс обязательно получаем
     date: this.getISODate(),
+    timeout:50,
     numColumns: Math.round(
       (Math.round(Dimensions.get("window").width) * PixelRatio.get()) / 350
     ),
@@ -75,15 +77,15 @@ export class DoctorTimeTable extends React.Component {
   };
 
   async componentDidMount() {
+    var p = await SecureStore.getItemAsync("timeout");
     this.backHandler = BackHandler.addEventListener(
       "hardwareBackPress",
       this.handleBackPress
     );
-    console.log(this.props.navigation.state.params.data.url);
     //TODO ограничитель
     //Вызываем загрузку данных, ждем и показываем экран пользователю
     await this.initApiCall();
-    this.setState({ loading: false });
+    this.setState({ loading: false, timeout:Number(p) });
   }
 
   async initApiCall() {
@@ -93,7 +95,8 @@ export class DoctorTimeTable extends React.Component {
       this.state.doctorId,
       this.state.date.slice(0, 10).replace(/-/g, "-"),
       this.state.url,
-      this.state.port
+      this.state.port,
+      this.state.timeout
     ).catch(e => {
       Alert.alert(
         "Ошибка",
@@ -128,7 +131,8 @@ export class DoctorTimeTable extends React.Component {
         this.state.doctorId,
         formatted[i],
         this.state.url,
-        this.state.port
+        this.state.port,
+        this.state.timeout
       ).catch(e => {
         Alert.alert(
           "Ошибка",
@@ -211,11 +215,41 @@ export class DoctorTimeTable extends React.Component {
   render() {
     if (this.state.loading) {
       return (
-        <View
-          style={{ flex: 1, flexDirection: "column", justifyContent: "center" }}
-        >
-          <Spinner color="red" />
-        </View>
+        <Container>
+          <Header
+            androidStatusBarColor="#a52b2a"
+            style={{
+              flexDirection: "row",
+              justifyContent: "center",
+              backgroundColor: "#a52b2a"
+            }}
+          >
+            <Body
+              style={{
+                flexDirection: "row",
+                justifyContent: "center",
+                backgroundColor: "#a52b2a"
+              }}
+            >
+              <NavigationHeader
+                navigateToSettings={() =>
+                  this.props.navigation.navigate("Settings")
+                }
+                date={this.state.date}
+              />
+            </Body>
+          </Header>
+          <View
+            style={{
+              flex: 1,
+              flexDirection: "column",
+              justifyContent: "center",
+              backgroundColor:"#F1FFF0"
+            }}
+          >
+            <Spinner color="red" />
+          </View>
+        </Container>
       );
     } else
       return (
@@ -303,7 +337,6 @@ class Table extends React.Component {
     if (Object.entries(data.kab).length === 0) {
       data.kab = "";
     }
-    console.log("vivod");
 
     Network.EditGrvData2(
       this.state.token,
@@ -315,7 +348,8 @@ class Table extends React.Component {
       data.nvr,
       data.kab,
       this.state.url,
-      this.state.port
+      this.state.port,
+      this.state.timeout
     );
     this.setState({ showEditTable: false });
     this.props.update();
@@ -325,29 +359,15 @@ class Table extends React.Component {
   }
 
   deleteCell(data) {
-    console.log(data);
     Network.DeleteGrvData(
       this.state.token,
       this.state.doctorId,
       data.date.slice(0, 10).replace(/-/g, "-"),
       data.time,
       this.state.url,
-      this.state.port
-    ).catch(e => {
-      Alert.alert(
-        "Ошибка",
-        "Превышен лимит ожидания ответа от сервера",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              this.deleteCell(data);
-            }
-          }
-        ],
-        { cancelable: true }
-      );
-    });
+      this.state.port,
+      this.state.timeout
+    )
     this.setState({ showEditTable: false });
     this.props.update();
   }
@@ -399,7 +419,6 @@ class Table extends React.Component {
   }
 
   init() {
-    console.log("Я вызван 1");
     return (
       <FlatList
         data={this.state.headerData
@@ -420,7 +439,6 @@ class Table extends React.Component {
   }
 
   TableFormatter(data) {
-    console.log("Я вызван 2");
     var Cells = [];
     var listOfColumns = data.map(item => item.cells);
     var longestArray = Math.max.apply(
@@ -441,7 +459,7 @@ class Table extends React.Component {
           key: Cells[i + listOfColumns.length * index].key,
           name: item.name,
           visitNum: item.visitNum,
-          time: item.time,
+          time: Object.keys(item.time).length === 0?"":item.time,
           date: item.date
         };
         Cells[i + listOfColumns.length * index] = newCell;
@@ -450,7 +468,6 @@ class Table extends React.Component {
     return Cells;
   }
   componentDidMount() {
-    console.log("ЗАМАУНЧЕН");
     this.setState({ loading: false });
   }
   render() {
@@ -467,7 +484,7 @@ class Table extends React.Component {
             )}
             keyExtractor={item => item.key}
             numColumns={this.state.numColumns}
-            ListHeaderComponent={this.init()}
+            ListHeaderComponent={()=>this.init()}
             style={{
               flex: 1,
               alignSelf: "stretch",

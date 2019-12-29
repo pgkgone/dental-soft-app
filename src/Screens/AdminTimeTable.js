@@ -9,7 +9,8 @@ import {
   ScrollView,
   Dimensions,
   PixelRatio,
-  Alert,BackHandler
+  Alert,
+  BackHandler
 } from "react-native";
 import { Container, Header, Body, Spinner } from "native-base";
 import DateTimePicker from "react-native-modal-datetime-picker";
@@ -19,6 +20,7 @@ import Network from "../Utils/Networking";
 import { NavigationHeader } from "../Components/NavigationHeader";
 import { Cell } from "../Components/Cell";
 import { EditTable } from "../Components/EditTable";
+import * as SecureStore from "expo-secure-store";
 export class AdminTimeTable extends React.Component {
   constructor(props) {
     super(props);
@@ -31,7 +33,7 @@ export class AdminTimeTable extends React.Component {
     };
   };
   state = {
-    refreshing : false,
+    refreshing: false,
     list: null,
     loading: true,
     token: this.props.navigation.state.params.data.token,
@@ -41,6 +43,7 @@ export class AdminTimeTable extends React.Component {
     docList: null,
     docInfo: null,
     showEditTable: false,
+    timeout:50,
     screenWidth: Math.round(Dimensions.get("window").width) * PixelRatio.get(),
     maxDocs: Math.round(
       (Math.round(Dimensions.get("window").width) * PixelRatio.get()) / 350
@@ -73,9 +76,12 @@ export class AdminTimeTable extends React.Component {
 
   dateChangedApiCall(datesl) {
     console.log("ИЗМЕНИЛОСЬ НА " + datesl);
-    this.setState({ date: datesl.slice(0, 10).replace(/-/g, "-"), refreshing : true }, () => {
-      this.initialApiCall();
-    });
+    this.setState(
+      { date: datesl.slice(0, 10).replace(/-/g, "-"), refreshing: true },
+      () => {
+        this.initialApiCall();
+      }
+    );
   }
 
   getISODate() {
@@ -92,12 +98,20 @@ export class AdminTimeTable extends React.Component {
       this.state.token,
       this.state.date.slice(0, 10).replace(/-/g, "-"),
       this.state.url,
-      this.state.port
+      this.state.port,
+      this.state.timeout
     ).catch(e => {
       Alert.alert(
         "Ошибка",
         "Превышен лимит ожидания ответа от сервера",
-        [{ text: "OK", onPress: () => {this.initialApiCall()} }],
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              this.initialApiCall();
+            }
+          }
+        ],
         { cancelable: true }
       );
     });
@@ -113,12 +127,20 @@ export class AdminTimeTable extends React.Component {
         formatted[i].id,
         this.state.date.slice(0, 10).replace(/-/g, "-"),
         this.state.url,
-        this.state.port
+        this.state.port,
+        this.state.timeout
       ).catch(e => {
         Alert.alert(
           "Ошибка",
           "Превышен лимит ожидания ответа от сервера",
-          [{ text: "OK", onPress: () => {this.initialApiCall()} }],
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                this.initialApiCall();
+              }
+            }
+          ],
           { cancelable: true }
         );
       });
@@ -146,16 +168,21 @@ export class AdminTimeTable extends React.Component {
       );
     }
     console.log("Получил все расписания\nТеперь время нормализовать пары");
-    this.setState({ docList: formatted, docInfo: docData, refreshing : false });
+    this.setState({ docList: formatted, docInfo: docData, refreshing: false });
     this.setState({ loading: false });
   }
 
   handleBackPress = () => {
     return true;
-  }
+  };
 
   async componentDidMount() {
-    this.backHandler = BackHandler.addEventListener('hardwareBackPress', this.handleBackPress);
+    var p = await SecureStore.getItemAsync("timeout");
+    this.setState({timeout:Number(p) });
+    this.backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      this.handleBackPress
+    );
     await Font.loadAsync({
       Roboto_medium: require("native-base/Fonts/Roboto_medium.ttf")
     });
@@ -182,7 +209,7 @@ export class AdminTimeTable extends React.Component {
         var newCell = {
           key: Cells[i + listOfColumns.length * index].key,
           visitNum: item.visitNum,
-          time: item.time,
+          time: Object.keys(item.time).length === 0 ? "" : item.time,
           date: item.date,
           doctorId: item.doctorId,
           prim: item.prim
@@ -235,9 +262,10 @@ kab - № кабинета
       data.nvr,
       data.kab,
       this.state.url,
-      this.state.port
-    )
-    console.log("aaaaaaaFFFFFFFFFFFFFFFFFFFF")
+      this.state.port,
+      this.state.timeout
+    );
+    console.log("aaaaaaaFFFFFFFFFFFFFFFFFFFF");
     this.setState({ showEditTable: false });
     this.initialApiCall();
   }
@@ -252,15 +280,9 @@ kab - № кабинета
       data.date.slice(0, 10).replace(/-/g, "-"),
       data.time,
       this.state.url,
-      this.state.port
-    ).catch(e => {
-      Alert.alert(
-        "Ошибка",
-        "Превышен лимит ожидания ответа от сервера",
-        [{ text: "OK", onPress: () => {this.DeleteGrvData(data)} }],
-        { cancelable: true }
-      );
-    });
+      this.state.port,
+      this.state.timeout
+    );
     this.setState({ showEditTable: false });
     this.initialApiCall();
   }
@@ -310,7 +332,6 @@ kab - № кабинета
   }
 
   generateTable(maxDocs) {
-
     if (maxDocs == null) maxDocs = this.state.maxDocs;
     var result = [];
     for (var i = 0; i < this.state.docList.length; i += this.state.maxDocs) {
@@ -396,29 +417,65 @@ kab - № кабинета
   refreshingSpinner() {
     if (this.state.refreshing) {
       return (
-          <View
-            style={{
-              flex: 1,
-              width : "100%",
-              height : "100%",
-              backgroundColor: "rgba(0,0,0,0.05)",
-              flexDirection: "row",
-              justifyContent: "center",
-              alignItems: "center",
-              paddingTop: 8,
-              zIndex : 200,
-              position : "absolute"
-            }}
-          >
-            <Spinner color="red" />
-          </View>
+        <View
+          style={{
+            flex: 1,
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0,0,0,0.05)",
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "center",
+            paddingTop: 8,
+            zIndex: 200,
+            position: "absolute",
+          }}
+        >
+          <Spinner color="red" />
+        </View>
       );
     }
   }
 
   render() {
     if (this.state.loading) {
-      return <View style={{flex : 1, flexDirection : 'column', justifyContent : 'center'}}><Spinner color='red' /></View>;
+      return (
+        <Container>
+          <Header
+            androidStatusBarColor="#a52b2a"
+            style={{
+              flexDirection: "row",
+              justifyContent: "center",
+              backgroundColor: "#a52b2a"
+            }}
+          >
+            <Body
+              style={{
+                flexDirection: "row",
+                justifyContent: "center",
+                backgroundColor: "#a52b2a"
+              }}
+            >
+              <NavigationHeader
+                navigateToSettings={() =>
+                  this.props.navigation.navigate("Settings")
+                }
+                date={this.state.date}
+              />
+            </Body>
+          </Header>
+          <View
+            style={{
+              flex: 1,
+              flexDirection: "column",
+              justifyContent: "center",
+              backgroundColor:"#F1FFF0"
+            }}
+          >
+            <Spinner color="red" />
+          </View>
+        </Container>
+      );
     } else
       return (
         <Container onLayout={this.onLayout.bind(this)}>

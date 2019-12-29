@@ -189,13 +189,25 @@ class EditClinicId extends React.Component {
 
   onEndEditingProcessor() {
     this.setState({ showIcon: true });
-    SecureStore.setItemAsync("cid", this.state.id);
+    if(!isNaN(this.state.id)){
+    SecureStore.setItemAsync("timeout", this.state.id);
+    } else{
+      Alert.alert(
+        "Ошибка",
+        "Интервал запроса может быть только числом",
+        [{ text: "OK", onPress: () => console.log("OK Pressed") }],
+        { cancelable: false }
+      );
+      this.setState({id:""})
+    }
   }
 
   async componentDidMount() {
-    var cid = await SecureStore.getItemAsync("cid");
-    if (cid != null) {
-      this.setState({ id: cid });
+    var timeout = await SecureStore.getItemAsync("timeout");
+    if (timeout != null) {
+      this.setState({ id: timeout });
+    } else{
+      this.setState({ id: 50 });
     }
   }
 
@@ -204,7 +216,7 @@ class EditClinicId extends React.Component {
       return (
         <View style={{ padding: 20, flexDirection: "row" }}>
           <View style={{ flex: 1.5 }}>
-            <Text style={{ fontSize: 20 }}>ID Клиники:</Text>
+            <Text style={{ fontSize: 20 }}>Интервал запросов:</Text>
           </View>
           <View
             style={{
@@ -215,6 +227,7 @@ class EditClinicId extends React.Component {
           >
             <View style={{ flexDirection: "column", justifyContent: "center" }}>
               <TextInput
+                keyboardType={"numeric"}
                 value={this.state.id}
                 style={{ fontSize: 20 }}
                 onChangeText={data => this.setState({ id: data })}
@@ -232,7 +245,7 @@ class EditClinicId extends React.Component {
       return (
         <View style={{ padding: 20, flexDirection: "row" }}>
           <View style={{ flex: 1.5 }}>
-            <Text style={{ fontSize: 20 }}>ID Клиники:</Text>
+            <Text style={{ fontSize: 20 }}>Интервал запросов</Text>
           </View>
           <View
             style={{
@@ -243,6 +256,7 @@ class EditClinicId extends React.Component {
           >
             <View style={{ flexDirection: "column", justifyContent: "center" }}>
               <TextInput
+                            keyboardType={"numeric"}
                 value={this.state.id}
                 style={{ fontSize: 20 }}
                 onChangeText={data => this.setState({ id: data })}
@@ -275,7 +289,7 @@ class LockScreenStateSwitcher extends React.Component {
           </View>
           <View>
             <Text style={{ fontSize: 12, color: "grey" }}>
-              Ауификация при повтроном входе в приложение
+            Аутентификация при входе в приложение
             </Text>
           </View>
         </View>

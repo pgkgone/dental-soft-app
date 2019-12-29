@@ -14,7 +14,7 @@ import { Button } from "native-base";
 import Network from "../Utils/Networking";
 import DeleteIcons from "react-native-vector-icons/Feather";
 import CancelIcons from "react-native-vector-icons/Entypo";
-
+import * as SecureStore from "expo-secure-store";
 export class EditTable extends React.Component {
   state = {
     visitNum: this.props.data.prim,
@@ -26,6 +26,7 @@ export class EditTable extends React.Component {
     nvr: "",
     kab: "",
     token: this.props.data.token,
+    timeout:50,
     loading: true,
     url: this.props.data.url,
     port: this.props.data.port
@@ -39,11 +40,20 @@ export class EditTable extends React.Component {
       this.state.date,
       this.state.time,
       this.state.url,
-      this.state.port
+      this.state.port,
+      this.state.timeout
     );
   }
   
+  changer(){
+    if(Object.entries(this.state.fio).length != 0){
+      console.log("changed")
+      this.setState({visitNum:this.state.prim})
+    }
+  }
   async componentDidMount() {
+    var p = await SecureStore.getItemAsync("timeout");
+    this.setState({timeout:Number(p) });
     if(this.state.visitNum==undefined){
       this.setState({visitNum:""})
     }
@@ -53,11 +63,12 @@ export class EditTable extends React.Component {
     var response = await this.getData();
     console.log(response);
     this.setState({
-      kab: response.kab,
-      nvr: response.nvr.toString(),
-      fio: response.fio,
-      mk: response.mk
-    });
+      kab: response.data.kab,
+      nvr: response.data.nvr.toString(),
+      fio: response.data.fio==""?new Object(): response.data.fio,
+      mk: response.data.mk==""?new Object():response.data.mk
+    },()=>{this.changer()});
+
     console.log(this.state);
     this.setState({ loading: false });
   }
@@ -162,6 +173,7 @@ export class EditTable extends React.Component {
               <View style={styles.editBoxItemView}>
                 <Text style={styles.editBoxItem}>Норма (мин.): </Text>
                 <TextInput
+                keyboardType={"numeric"}
                   style={{
                     height: 40,
                     borderBottomWidth: 1,
@@ -175,6 +187,7 @@ export class EditTable extends React.Component {
               <View style={styles.editBoxItemView}>
                 <Text style={styles.editBoxItem}>№ кабинета: </Text>
                 <TextInput
+                keyboardType={"numeric"}
                   style={{
                     height: 40,
                     borderBottomWidth: 1,

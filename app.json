@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Dental Soft Ap",
+    "name": "ДенталСофт",
     "slug": "dental-app",
     "privacy": "public",
     "sdkVersion": "36.0.0",
@@ -10,7 +10,7 @@
     ],
     "version": "1.0.0",
     "orientation": "default",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon1.png",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
