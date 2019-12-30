@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "ДенталСофт",
+    "description":"Дентал-Софт - интеграция с компьютерной программой Дентал-Софт",
     "slug": "dental-app",
     "privacy": "public",
     "sdkVersion": "36.0.0",
@@ -8,12 +9,11 @@
       "android",
       "web"
     ],
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "default",
     "icon": "./assets/icon1.png",
     "splash": {
       "image": "./assets/splash.png",
-      "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "updates": {
@@ -28,7 +28,10 @@
       "backgroundColor": "#a52b2a"
     },
     "android": {
-      "package": "com.dentalsoft.dentalapp"
+      "package": "com.dentalsoft.dentalapp",
+      "permissions": [
+      ],
+      "versionCode":3
     }
   }
 }
