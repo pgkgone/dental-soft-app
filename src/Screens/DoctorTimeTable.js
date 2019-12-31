@@ -28,6 +28,7 @@ export class DoctorTimeTable extends React.Component {
     refreshing: false,
     loading: true,
     dates: null,
+    myorientation:true,
     listOfCells: null,
     doctorId: this.props.navigation.state.params.data.doctorId, //через пропс обязательно получаем
     date: this.getISODate(),
@@ -51,12 +52,7 @@ export class DoctorTimeTable extends React.Component {
   };
 
   onLayout(e) {
-    var screenWidth =
-      Math.round(Dimensions.get("window").width) * PixelRatio.get();
-    var maxDocs = Math.round(screenWidth / 350);
-    if (this.state.numColumns != maxDocs) {
-      this.setState({ numColumns: maxDocs }, () => {});
-    }
+    this.setState({myorientation:!this.state.myorientation})
   }
 
   getISODate() {
@@ -119,9 +115,6 @@ export class DoctorTimeTable extends React.Component {
       .slice(0, this.state.maxColumns);
     //Указываем даты
     console.log("DATES:" + formatted);
-    if (formatted.length < this.state.maxColumns) {
-      this.setState({ maxColumns: formatted.length });
-    }
     //Формируем объект, который отошлём в TableFormatter
     var data = {};
     var dates = [];
@@ -285,7 +278,6 @@ export class DoctorTimeTable extends React.Component {
           </Header>
           <Table
             data={this.state.listOfCells}
-            numColumns={this.state.numColumns}
             headerData={this.state.dates}
             doctorId={this.state.doctorId}
             token={this.state.token}
@@ -294,6 +286,7 @@ export class DoctorTimeTable extends React.Component {
             update={() => {
               this.initApiCall();
             }}
+            myorientation={this.state.myorientation}
           ></Table>
         </Container>
       );
@@ -306,7 +299,9 @@ class Table extends React.Component {
   }
 
   state = {
-    numColumns: this.props.numColumns,
+    numColumns:Math.round(
+      (Math.round(Dimensions.get("window").width) * PixelRatio.get()) / 350
+    ) ,
     data: this.props.data,
     headerData: this.props.headerData,
     loading: true,
@@ -403,24 +398,49 @@ class Table extends React.Component {
     }
   }
 
+  checker(){
+
+  }
   componentDidUpdate(prevProps, prevState, snapshot) {
     console.log("updated");
-    if (prevProps.numColumns != this.props.numColumns) {
-      console.log("SETTED");
-      this.setState({ numColumns: this.props.numColumns });
-    }
-    if (prevProps.data != this.props.data) {
-      console.log("SETTED");
-      this.setState({
-        data: this.props.data,
-        headerData: this.props.headerData
-      });
+    if (prevProps.myorientation != this.props.myorientation || prevProps.data != this.props.data) {
+      if(prevProps.myorientation != this.props.myorientation){
+        var canBe=Math.round(
+          (Math.round(Dimensions.get("window").width) * PixelRatio.get()) / 350) 
+        console.log("CAN BE:"+canBe)
+        if(this.state.headerData.length<canBe){
+          this.setState({
+            numColumns:this.state.headerData.length
+          });
+        } else{
+        this.setState({
+          numColumns:canBe
+        });
+      }
+      }else{
+        var canBe=Math.round(
+          (Math.round(Dimensions.get("window").width) * PixelRatio.get()) / 350) 
+        if(this.props.headerData.length<canBe){
+          this.setState({
+            data: this.props.data,
+            headerData: this.props.headerData,
+            numColumns:this.props.headerData.length
+          });
+        } else{
+        this.setState({
+          data: this.props.data,
+          headerData: this.props.headerData,
+          numColumns:canBe
+        });
+      }
+      }
     }
   }
 
   init() {
     return (
       <FlatList
+        key={this.state.numColumns}
         data={this.state.headerData
           .slice(0, this.state.numColumns)
           .map(item => {
