@@ -17,14 +17,11 @@ import {
   Toast,TextInput
 } from "native-base";
 import { Alert, StyleSheet, View } from "react-native";
-import * as FileSystem from "expo-file-system";
 import * as Font from "expo-font";
 import Constants from "expo-constants";
 import * as SecureStore from "expo-secure-store";
 import fetch from "./Utils/fetchWithTimeout";
-import Network from "./Utils/Networking";
 import Lock from "./Lock";
-import * as LocalAuthentication from "expo-local-authentication";
 
 export class Login extends React.Component {
   constructor(props) {
@@ -72,18 +69,6 @@ export class Login extends React.Component {
         { cancelable: false }
       );
       return;
-    }
-
-    /// Сука только посмей блядь пропатчить
-    if(this.state.cid !="demo" && this.state.cid!="xydik"){
-      Alert.alert(
-        "Демо версия",
-        "Возможна только demo/xydik клиника",
-        [{ text: "OK", onPress: () => console.log("OK Pressed") }],
-        { cancelable: false }
-      );
-      this.setState({first:true})
-      return
     }
 
     //

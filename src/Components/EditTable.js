@@ -187,7 +187,6 @@ export class EditTable extends React.Component {
               <View style={styles.editBoxItemView}>
                 <Text style={styles.editBoxItem}>№ кабинета: </Text>
                 <TextInput
-                keyboardType={"numeric"}
                   style={{
                     height: 40,
                     borderBottomWidth: 1,
@@ -234,7 +233,7 @@ export class EditTable extends React.Component {
 }
 export class HiddenBox extends React.Component {
   render() {
-    if(Object.entries(this.props.value).length === 0 && this.props.value.constructor === Object)
+    if((Object.entries(this.props.value).length === 0 && this.props.value.constructor === Object) ||this.props.value==="")
     {
     return (
       <View></View>

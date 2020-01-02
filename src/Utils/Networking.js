@@ -1,6 +1,4 @@
 import { Alert } from "react-native";
-import * as soap from "soap-everywhere";
-import { Content } from "native-base";
 class Network {
   //TODO PORT SUPPORT
 
@@ -8,14 +6,13 @@ class Network {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  static url = "http://vds.dental-soft.ru:2102/?wsdl";
   static timeout = 16000;
   static getUrl(url, port) {
     return "http://" + url + ":" + port + "/?wsdl";
   }
 
   static async GetDocsAll(token, date, url, port, timeout) {
-    await this.sleep(timeout);
+    //await this.sleep(timeout);
     var body =
       '<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><GetDocsAll xmlns="urn:grvssl"><tokenId>' +
       token +
@@ -57,9 +54,9 @@ class Network {
     });
   }
 
-  static async GetTimesAll(token, id, date, url, port, timeout) {
-    console.log("GetTimes");
-    await this.sleep(timeout);
+  static async GetTimesAll(token, id, date, url, port, timeout, tryc=0) {
+    //await this.sleep(timeout);
+    console.log("GetDates")
     var body =
       '<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><GetTimesAll xmlns="urn:grvssl"><tokenId>' +
       token +
@@ -68,7 +65,6 @@ class Network {
       "</docId><datez>" +
       date +
       "</datez></GetTimesAll></Body></Envelope>";
-    console.log(body);
     const axios = require("axios");
     return new Promise((resolve, reject) => {
       axios({
@@ -77,7 +73,6 @@ class Network {
         timeout: 15000, // Wait for 15 seconds
         data: body,
         headers: {
-          "Content-Type": "text/plain",
           "User-Agent": "PostmanRuntime/7.21.0",
           Accept: "*/*",
           "Cache-Control": "no-cache",
@@ -97,13 +92,14 @@ class Network {
           });
         })
         .catch(error => {
-          reject(new Error("Error"));
+          console.log("ОШИБКАааааааааааааааааААААААААААААААААААА-"+error)
+          reject(error);
         });
     });
   }
 
   static async GetDatesAll(token, id, date, url, port, timeout) {
-    await this.sleep(timeout);
+    //await this.sleep(timeout)await this.sleep(timeout);
     var body =
       '<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><GetDatesAll xmlns="urn:grvssl"><tokenId>' +
       token +
@@ -159,8 +155,7 @@ class Network {
     port,
     timeout
   ) {
-    console.log("new2")
-    await this.sleep(timeout);
+    //await this.sleep(timeout);
     var body =
       '<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><EditGrvData xmlns="urn:grvssl"><tokenId>' +
       token +
@@ -201,63 +196,18 @@ class Network {
         .then(response => {
           var d = response.data;
           console.log(d)
-          if (d.includes("STATE-OK")) {
-            Alert.alert(
-              "Ок",
-              "Успешно изменено, данные обновляются",
-              [{ text: "OK", onPress: () => {} }],
-              { cancelable: true }
-            );
-          } else {
-            var msg = "";
-            if (d.includes("Validation constraint violation")) {
-              msg = "Неверная норма времени";
-            } else {
-              if (d.includes("Нет такого")) {
-                msg = "Нет такого № кабинета " + kab;
-              }
-            }
-            Alert.alert("Ошибка", msg, [{ text: "OK", onPress: () => {} }], {
-              cancelable: true
-            });
-          }
           resolve(d);
         })
         .catch((error) => {
           console.log(error.response.data)
           var d = error.response.data;
-          if (d.includes("STATE-OK")) {
-            Alert.alert(
-              "Ок",
-              "Успешно изменено, данные обновляются",
-              [{ text: "OK", onPress: () => {} }],
-              { cancelable: true }
-            );
-          } else {
-            var msg = "";
-            if (d.includes("Validation constraint violation")) {
-              msg = "Неверная норма времени";
-            } else {
-              if (d.includes("Нет такого")) {
-                msg = "Нет такого № кабинета " + kab;
-              } else{
-                if(d.includes("Слишком большое время")){
-                  msg="Слишком большое время на прием, так как кто-то уже записан на следующее время, конфликтующее с текущей нормой"
-                }
-              }
-            }
-            if(msg==="") msg="Превышен лимит ожидания от сервера"
-            Alert.alert("Ошибка", msg, [{ text: "OK", onPress: () => {} }], {
-              cancelable: true
-            });
-          }
-          reject(new Error("Error"));
-        });
+          reject(d);
+          });
     });
   }
 
   static async DeleteGrvData(token, id, date, time, url, port, timeout) {
-    await this.sleep(timeout);
+    //await this.sleep(timeout);
     var body =
       '<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><DeleteGrvData xmlns="urn:grvssl"><tokenId>' +
       token +
@@ -332,8 +282,7 @@ class Network {
   }
 
   static async GetGrvData(token, id, date, time, url, port, timeout) {
-    console.log(timeout)
-    await this.sleep(timeout);
+    //await this.sleep(timeout);
     var body =
       '<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><GetGrvData xmlns="urn:grvssl"><tokenId>' +
       token +

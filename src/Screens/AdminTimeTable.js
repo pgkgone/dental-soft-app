@@ -236,7 +236,7 @@ nvr – норма времени на приём
 kab - № кабинета
   */
   //эта функция вызывается после нажатия на кнопку сохранить
-  saveChanges(data) {
+  async saveChanges(data) {
     if (Object.entries(data.mk).length === 0) {
       data.mk = "";
     }
@@ -249,10 +249,8 @@ kab - № кабинета
     if (Object.entries(data.kab).length === 0) {
       data.kab = "";
     }
-    console.log("vivod");
-    console.log(data);
-
-    Network.EditGrvData2(
+    var d;
+    d = await Network.EditGrvData2(
       this.state.token,
       data.doctorId,
       data.date.slice(0, 10).replace(/-/g, "-"),
@@ -264,11 +262,37 @@ kab - № кабинета
       this.state.url,
       this.state.port,
       this.state.timeout
-    );
-    console.log("aaaaaaaFFFFFFFFFFFFFFFFFFFF");
-    this.setState({ showEditTable: false });
-    this.initialApiCall();
+    ).catch((e)=>{
+      var msg = "";
+      if (e.includes("Validation constraint violation")) {
+        msg = "Неверная норма времени";
+      } else {
+        if (e.includes("Нет такого")) {
+          msg = "Нет такого № кабинета " + data.kab;
+        } else {
+          if (e.includes("Слишком большое время")) {
+            msg =
+              "Слишком большое время на прием, так как кто-то уже записан на следующее время, конфликтующее с текущей нормой";
+          }
+        }
+      }
+      if (msg === "") msg = "Превышен лимит ожидания от сервера";
+      Alert.alert("Ошибка", msg, [{ text: "OK", onPress: () => {} }], {
+        cancelable: true
+      });
+    });
+  
+    if (d.includes("STATE-OK")) {
+      Alert.alert(
+        "Ок",
+        "Успешно изменено, данные обновляются",
+        [{ text: "OK", onPress: () => {      this.setState({ showEditTable: false });
+        this.props.update();} }],
+        { cancelable: true }
+      );
+    }
   }
+  
   showEditTable(newState) {
     this.setState(newState);
   }

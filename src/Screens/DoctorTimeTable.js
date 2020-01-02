@@ -28,11 +28,11 @@ export class DoctorTimeTable extends React.Component {
     refreshing: false,
     loading: true,
     dates: null,
-    myorientation:true,
+    myorientation: true,
     listOfCells: null,
     doctorId: this.props.navigation.state.params.data.doctorId, //через пропс обязательно получаем
     date: this.getISODate(),
-    timeout:50,
+    timeout: 50,
     numColumns: Math.round(
       (Math.round(Dimensions.get("window").width) * PixelRatio.get()) / 350
     ),
@@ -52,7 +52,7 @@ export class DoctorTimeTable extends React.Component {
   };
 
   onLayout(e) {
-    this.setState({myorientation:!this.state.myorientation})
+    this.setState({ myorientation: !this.state.myorientation });
   }
 
   getISODate() {
@@ -81,11 +81,54 @@ export class DoctorTimeTable extends React.Component {
     //TODO ограничитель
     //Вызываем загрузку данных, ждем и показываем экран пользователю
     await this.initApiCall();
-    this.setState({ loading: false, timeout:Number(p) });
+    this.setState({ loading: false, timeout: Number(p) });
   }
 
+  async getter(forUrl, ind) {
+    var pa = await Network.GetTimesAll(
+      this.state.token,
+      this.state.doctorId,
+      forUrl,
+      this.state.url,
+      this.state.port,
+      this.state.timeout
+    ).catch(e => {
+      console.log(e);
+      throw e;
+    });
+    var form = pa.rows.row.map(item => {
+      var p = null;
+      if (Object.entries(item.id).length === 0) {
+        p = {
+          visitNum: "", //Цель визита
+          time: item.name,
+          doctorId: this.state.doctorId,
+          date: forUrl,
+          name: "" //Имя пациента
+        };
+      } else {
+        p = {
+          visitNum: item.id.split(",")[1], //Цель визита
+          time: item.name,
+          doctorId: this.state.doctorId,
+          date: forUrl,
+          name: item.id.split(", ")[0] //Имя пациента
+        };
+      }
+      return p;
+    });
+    this.answs[ind] = form;
+    return true;
+  }
+
+  async getTimesM(formatted) {
+    //this.getter(i, index).then(r=>{console.log("agaaaa");res(r)}).catch(s=>{console.log("BAD");rej(s)})
+    var p = formatted.map((i, index) => {
+      return new Promise((res, rej) => {this.getter(i,index).then(e=>{res(e)}).catch(e=>{rej(e)})});
+    })
+    return new Promise.all(p).then(e=>{console.log("ended")}).catch(e=>{console.log("AAAAA");throw e});
+  }
   async initApiCall() {
-    console.log("МЕНЯ ВЫЗВАЛИ");
     var times = await Network.GetDatesAll(
       this.state.token,
       this.state.doctorId,
@@ -115,68 +158,44 @@ export class DoctorTimeTable extends React.Component {
       .slice(0, this.state.maxColumns);
     //Указываем даты
     console.log("DATES:" + formatted);
+    this.answs = new Array(formatted.length);
     //Формируем объект, который отошлём в TableFormatter
     var data = {};
     var dates = [];
-    for (var i = 0; i < formatted.length; i++) {
-      var pa = await Network.GetTimesAll(
-        this.state.token,
-        this.state.doctorId,
-        formatted[i],
-        this.state.url,
-        this.state.port,
-        this.state.timeout
-      ).catch(e => {
-        Alert.alert(
-          "Ошибка",
-          "Превышен лимит ожидания ответа от сервера",
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                this.initApiCall();
-              }
+    await this.getTimesM(formatted).catch(e => {
+      console.log("MAIN ERR")
+      Alert.alert(
+        "Ошибка",
+        "Превышен лимит ожидания ответа от сервера",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              this.initApiCall();
             }
-          ],
-          { cancelable: true }
-        );
-      });
-      var form = pa.rows.row.map(item => {
-        var p = null;
-        if (Object.entries(item.id).length === 0) {
-          p = {
-            visitNum: "", //Цель визита
-            time: item.name,
-            doctorId: this.state.doctorId,
-            date: formatted[i],
-            name: "" //Имя пациента
-          };
-        } else {
-          p = {
-            visitNum: item.id.split(",")[1], //Цель визита
-            time: item.name,
-            doctorId: this.state.doctorId,
-            date: formatted[i],
-            name: item.id.split(", ")[0] //Имя пациента
-          };
-        }
-        return p;
-      });
+          }
+        ],
+        { cancelable: true }
+      );
+    });
+    for (var i = 0; i < formatted.length; i++) {
       dates.push({
         date: formatted[i],
-        cells: form
+        cells: this.answs[i]
       });
     }
     data.dates = dates;
-    this.setState({ listOfCells: data, dates: formatted, refreshing : false });
+    this.setState({ listOfCells: data, dates: formatted, refreshing: false });
   }
 
   dateChangedApiCall(datesl) {
     console.log("ИЗМЕНИЛОСЬ НА" + datesl);
-    this.setState({ date: datesl.slice(0, 10).replace(/-/g, "-"), refreshing : true}, () => {
-      this.initApiCall();
-    });
-    
+    this.setState(
+      { date: datesl.slice(0, 10).replace(/-/g, "-"), refreshing: true },
+      () => {
+        this.initApiCall();
+      }
+    );
   }
 
   constructor(props) {
@@ -185,22 +204,22 @@ export class DoctorTimeTable extends React.Component {
   refreshingSpinner() {
     if (this.state.refreshing) {
       return (
-          <View
-            style={{
-              flex: 1,
-              width : "100%",
-              height : "100%",
-              backgroundColor: "rgba(0,0,0,0.05)",
-              flexDirection: "row",
-              justifyContent: "center",
-              alignItems: "center",
-              paddingTop: 8,
-              zIndex : 200,
-              position : "absolute"
-            }}
-          >
-            <Spinner color="red" />
-          </View>
+        <View
+          style={{
+            flex: 1,
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0,0,0,0.05)",
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "center",
+            paddingTop: 8,
+            zIndex: 200,
+            position: "absolute"
+          }}
+        >
+          <Spinner color="red" />
+        </View>
       );
     }
   }
@@ -237,7 +256,7 @@ export class DoctorTimeTable extends React.Component {
               flex: 1,
               flexDirection: "column",
               justifyContent: "center",
-              backgroundColor:"#F1FFF0"
+              backgroundColor: "#F1FFF0"
             }}
           >
             <Spinner color="red" />
@@ -299,9 +318,9 @@ class Table extends React.Component {
   }
 
   state = {
-    numColumns:Math.round(
+    numColumns: Math.round(
       (Math.round(Dimensions.get("window").width) * PixelRatio.get()) / 350
-    ) ,
+    ),
     data: this.props.data,
     headerData: this.props.headerData,
     loading: true,
@@ -319,7 +338,7 @@ class Table extends React.Component {
   }
 
   //эта функция вызывается после нажатия на кнопку сохранить
-  saveChanges(data) {
+  async saveChanges(data) {
     if (Object.entries(data.mk).length === 0) {
       data.mk = "";
     }
@@ -332,8 +351,8 @@ class Table extends React.Component {
     if (Object.entries(data.kab).length === 0) {
       data.kab = "";
     }
-
-    Network.EditGrvData2(
+    var d;
+    d = await Network.EditGrvData2(
       this.state.token,
       data.doctorId,
       data.date.slice(0, 10).replace(/-/g, "-"),
@@ -345,10 +364,44 @@ class Table extends React.Component {
       this.state.url,
       this.state.port,
       this.state.timeout
-    );
-    this.setState({ showEditTable: false });
-    this.props.update();
+    ).catch(e => {
+      var msg = "";
+      if (e.includes("Validation constraint violation")) {
+        msg = "Неверная норма времени";
+      } else {
+        if (e.includes("Нет такого")) {
+          msg = "Нет такого № кабинета " + data.kab;
+        } else {
+          if (e.includes("Слишком большое время")) {
+            msg =
+              "Слишком большое время на прием, так как кто-то уже записан на следующее время, конфликтующее с текущей нормой";
+          }
+        }
+      }
+      if (msg === "") msg = "Превышен лимит ожидания от сервера";
+      Alert.alert("Ошибка", msg, [{ text: "OK", onPress: () => {} }], {
+        cancelable: true
+      });
+    });
+
+    if (d.includes("STATE-OK")) {
+      Alert.alert(
+        "Ок",
+        "Успешно изменено, данные обновляются",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              this.setState({ showEditTable: false });
+              this.props.update();
+            }
+          }
+        ],
+        { cancelable: true }
+      );
+    }
   }
+
   showEditTable(newState) {
     this.setState(newState);
   }
@@ -362,7 +415,7 @@ class Table extends React.Component {
       this.state.url,
       this.state.port,
       this.state.timeout
-    )
+    );
     this.setState({ showEditTable: false });
     this.props.update();
   }
@@ -398,41 +451,44 @@ class Table extends React.Component {
     }
   }
 
-  checker(){
-
-  }
+  checker() {}
   componentDidUpdate(prevProps, prevState, snapshot) {
     console.log("updated");
-    if (prevProps.myorientation != this.props.myorientation || prevProps.data != this.props.data) {
-      if(prevProps.myorientation != this.props.myorientation){
-        var canBe=Math.round(
-          (Math.round(Dimensions.get("window").width) * PixelRatio.get()) / 350) 
-        console.log("CAN BE:"+canBe)
-        if(this.state.headerData.length<canBe){
+    if (
+      prevProps.myorientation != this.props.myorientation ||
+      prevProps.data != this.props.data
+    ) {
+      if (prevProps.myorientation != this.props.myorientation) {
+        var canBe = Math.round(
+          (Math.round(Dimensions.get("window").width) * PixelRatio.get()) / 350
+        );
+        console.log("CAN BE:" + canBe);
+        if (this.state.headerData.length < canBe) {
           this.setState({
-            numColumns:this.state.headerData.length
+            numColumns: this.state.headerData.length
           });
-        } else{
-        this.setState({
-          numColumns:canBe
-        });
-      }
-      }else{
-        var canBe=Math.round(
-          (Math.round(Dimensions.get("window").width) * PixelRatio.get()) / 350) 
-        if(this.props.headerData.length<canBe){
+        } else {
+          this.setState({
+            numColumns: canBe
+          });
+        }
+      } else {
+        var canBe = Math.round(
+          (Math.round(Dimensions.get("window").width) * PixelRatio.get()) / 350
+        );
+        if (this.props.headerData.length < canBe) {
           this.setState({
             data: this.props.data,
             headerData: this.props.headerData,
-            numColumns:this.props.headerData.length
+            numColumns: this.props.headerData.length
           });
-        } else{
-        this.setState({
-          data: this.props.data,
-          headerData: this.props.headerData,
-          numColumns:canBe
-        });
-      }
+        } else {
+          this.setState({
+            data: this.props.data,
+            headerData: this.props.headerData,
+            numColumns: canBe
+          });
+        }
       }
     }
   }
@@ -479,7 +535,7 @@ class Table extends React.Component {
           key: Cells[i + listOfColumns.length * index].key,
           name: item.name,
           visitNum: item.visitNum,
-          time: Object.keys(item.time).length === 0?"":item.time,
+          time: Object.keys(item.time).length === 0 ? "" : item.time,
           date: item.date
         };
         Cells[i + listOfColumns.length * index] = newCell;
@@ -504,7 +560,7 @@ class Table extends React.Component {
             )}
             keyExtractor={item => item.key}
             numColumns={this.state.numColumns}
-            ListHeaderComponent={()=>this.init()}
+            ListHeaderComponent={() => this.init()}
             style={{
               flex: 1,
               alignSelf: "stretch",
