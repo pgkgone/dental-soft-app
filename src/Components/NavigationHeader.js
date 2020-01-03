@@ -28,7 +28,7 @@ export class NavigationHeader extends React.Component {
     this.state = {
       isDateTimePickerVisible: false,
       currentDate: new Date(this.props.date).toISOString(),
-      refreshVar : false
+      refreshVar: false
     };
     console.log(this.props.date + "initial date");
   }
@@ -42,18 +42,35 @@ export class NavigationHeader extends React.Component {
   };
 
   handleDatePicked = date => {
-    this.setState({refreshVar : !this.state.refreshVar})
-    console.log("NEEEEEEEEEEEEEEEEEW DATE" + date.toISOString())
+    this.setState({ refreshVar: !this.state.refreshVar });
+    console.log("NEEEEEEEEEEEEEEEEEW DATE" + date.toISOString());
     this.setState({ currentDate: new Date(date).toISOString() });
     this.props.apiCall(new Date(date).toISOString());
     this.hideDateTimePicker();
   };
 
   nextDate() {
-    var newDate = new Date(this.state.currentDate).setDate(
-      new Date(this.state.currentDate).getDate() + 1
-    );
-    this.handleDatePicked(new Date(newDate));
+    if (
+      this.props.hasOwnProperty("nextdate") &&
+      this.props.nextdate != null &&
+      this.props.nextdate.length > 2
+    ) {
+      console.log("next date is" + this.props.nextdate[1]);
+      console.log("date1!!" + new Date(this.state.currentDate))
+      console.log("date!2" + new Date(this.props.nextdate[0]))
+      if(new Date(this.state.currentDate).getTime() === new Date(this.props.nextdate[0]).getTime())
+      {
+        this.handleDatePicked(new Date(this.props.nextdate[1]));
+      }else{
+        this.handleDatePicked(new Date(this.props.nextdate[0]));
+      }
+      
+    } else {
+      var newDate = new Date(this.state.currentDate).setDate(
+        new Date(this.state.currentDate).getDate() + 1
+      );
+      this.handleDatePicked(new Date(newDate));
+    }
   }
 
   prevDate() {
@@ -91,7 +108,7 @@ export class NavigationHeader extends React.Component {
             flexDirection: "row",
             justifyContent: "center",
             alignSelf: "center",
-            flex: 1,
+            flex: 1
           }}
         >
           <TouchableOpacity
@@ -103,11 +120,7 @@ export class NavigationHeader extends React.Component {
             }}
             onPress={() => this.prevDate()}
           >
-            <ArrowIcons
-              name="left"
-              color={"white"}
-              size={22}
-            />
+            <ArrowIcons name="left" color={"white"} size={22} />
           </TouchableOpacity>
           <View
             style={{
@@ -141,7 +154,7 @@ export class NavigationHeader extends React.Component {
                     "  "}
                 </Text>
               </View>
-              <View >
+              <View>
                 <Icon2 name="calendar" size={24} color={"white"} />
               </View>
             </TouchableOpacity>
@@ -155,11 +168,7 @@ export class NavigationHeader extends React.Component {
             }}
             onPress={() => this.nextDate()}
           >
-            <ArrowIcons
-              name="right"
-              color={"white"}
-              size={22}
-            />
+            <ArrowIcons name="right" color={"white"} size={22} />
           </TouchableOpacity>
         </View>
       </View>

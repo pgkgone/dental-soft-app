@@ -173,6 +173,7 @@ export class DoctorTimeTable extends React.Component {
       .slice(0, this.state.maxColumns);
     //Указываем даты
     console.log("DATES:" + formatted);
+    console.log(formatted[0]);
     this.answs = new Array(formatted.length);
     //Формируем объект, который отошлём в TableFormatter
     var data = {};
@@ -270,6 +271,7 @@ export class DoctorTimeTable extends React.Component {
                   this.props.navigation.navigate("Settings")
                 }
                 date={this.state.date}
+                nextdate = {this.state.dates}
               />
             </Body>
           </Header>
@@ -314,6 +316,7 @@ export class DoctorTimeTable extends React.Component {
                   this.props.navigation.navigate("Settings")
                 }
                 date={this.state.date}
+                nextdate = {this.state.dates}
               />
             </Body>
           </Header>

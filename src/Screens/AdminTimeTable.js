@@ -104,8 +104,6 @@ export class AdminTimeTable extends React.Component {
       console.log(e);
       throw e;
     });
-    console.log(forUrl+" "+ind+" "+forDoc)
-    console.log(pa)
     var form = pa.rows.row.map(item => {
       var p = null;
       if (Object.entries(item.id).length === 0) {
@@ -114,7 +112,7 @@ export class AdminTimeTable extends React.Component {
           time: item.name,
           doctorId: forDoc,
           date: forUrl,
-          prim: "" //Имя пациента
+          name: "" //Имя пациента
         };
       } else {
         p = {
@@ -122,7 +120,7 @@ export class AdminTimeTable extends React.Component {
           time: item.name,
           doctorId: forDoc,
           date: forUrl,
-          prim: item.id.split(", ")[0] //Имя пациента
+          name: item.id.split(", ")[0] //Имя пациента
         };
       }
       return p;
@@ -327,7 +325,7 @@ kab - № кабинета
         "Ок",
         "Успешно изменено, данные обновляются",
         [{ text: "OK", onPress: () => {      this.setState({ showEditTable: false });
-        this.initialApiCall()} }],
+        this.props.update();} }],
         { cancelable: true }
       );
     }
