@@ -65,6 +65,7 @@ class Network {
       "</docId><datez>" +
       date +
       "</datez></GetTimesAll></Body></Envelope>";
+      console.log(body)
     const axios = require("axios");
     return new Promise((resolve, reject) => {
       axios({
@@ -92,8 +93,15 @@ class Network {
           });
         })
         .catch(error => {
-          console.log("ОШИБКАааааааааааааааааААААААААААААААААААА-"+error)
-          reject(error);
+          console.log("ОШИБКА-"+error)
+          if(error.toString().includes("Request failed with status code 400")){
+            if(tryc<=3){
+              console.log("Поймал и дал шанс")
+              resolve(this.GetTimesAll(token, id, date, url, port, timeout, tryc+1))
+            } else{
+              reject(error);
+            }
+          }
         });
     });
   }

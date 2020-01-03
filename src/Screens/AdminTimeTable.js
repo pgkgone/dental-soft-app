@@ -92,6 +92,68 @@ export class AdminTimeTable extends React.Component {
     return isoDate;
   }
 
+  async getter(forUrl, ind, forDoc) {
+    var pa = await Network.GetTimesAll(
+      this.state.token,
+      forDoc,
+      forUrl,
+      this.state.url,
+      this.state.port,
+      this.state.timeout
+    ).catch(e => {
+      console.log(e);
+      throw e;
+    });
+    var form = pa.rows.row.map(item => {
+      var p = null;
+      if (Object.entries(item.id).length === 0) {
+        p = {
+          visitNum: "", //Цель визита
+          time: item.name,
+          doctorId: forDoc,
+          date: forUrl,
+          name: "" //Имя пациента
+        };
+      } else {
+        p = {
+          visitNum: item.id.split(",")[1], //Цель визита
+          time: item.name,
+          doctorId: forDoc,
+          date: forUrl,
+          name: item.id.split(", ")[0] //Имя пациента
+        };
+      }
+      return p;
+    });
+    this.answs[ind] = form;
+    return true;
+  }
+
+  async getTimesM(formatted) {
+    //this.getter(i, index).then(r=>{console.log("agaaaa");res(r)}).catch(s=>{console.log("BAD");rej(s)})
+    console.log(formatted)
+    var p = formatted.map((i, index) => {
+      return new Promise((res, rej) => {
+        this.getter( this.state.date.slice(0, 10).replace(/-/g, "-"), index,i.id)
+          .then(e => {
+            res(e);
+          })
+          .catch(e => {
+            rej(e);
+          });
+      });
+    });
+    return new Promise.all(p)
+      .then(e => {
+        console.log("ended");
+      })
+      .catch(e => {
+        console.log("AAAAA");
+        throw e;
+      });
+  }
+
+
   async initialApiCall() {
     console.log("Start Loading");
     var docList = await Network.GetDocsAll(
@@ -118,58 +180,34 @@ export class AdminTimeTable extends React.Component {
     var formatted = docList.rows.row.map(item => {
       return { id: item.id, name: item.name };
     });
-    console.log(docList);
-    console.log("Получил список докторов \nПолучаю расписание для них");
+    this.answs = new Array(formatted.length);
     var docData = [];
-    for (var i = 0; i < formatted.length; i++) {
-      var response = await Network.GetTimesAll(
-        this.state.token,
-        formatted[i].id,
-        this.state.date.slice(0, 10).replace(/-/g, "-"),
-        this.state.url,
-        this.state.port,
-        this.state.timeout
-      ).catch(e => {
-        Alert.alert(
-          "Ошибка",
-          "Превышен лимит ожидания ответа от сервера",
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                this.initialApiCall();
-              }
+    await this.getTimesM(formatted)
+    .then(re => {
+      for (var i = 0; i < formatted.length; i++) {
+        docData.push(this.answs[i])
+      }
+      this.setState({ docList: formatted, docInfo: docData, refreshing: false });
+      this.setState({ loading: false });
+    })
+    .catch(e => {
+      console.log("MAIN ERR:"+e);
+      Alert.alert(
+        "Ошибка",
+        "Ошибка соединения с сервером",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              this.initialApiCall();
             }
-          ],
-          { cancelable: true }
-        );
-      });
-
-      docData.push(
-        response.rows.row.map(item => {
-          var p = null;
-          if (Object.entries(item.id).length === 0) {
-            p = {
-              visitNum: "", //Цель визита
-              time: item.name,
-              prim: "",
-              doctorId: formatted[i].id
-            };
-          } else {
-            p = {
-              visitNum: item.id.split(",")[1], //Цель визита
-              time: item.name,
-              prim: item.id.split(", ")[0], //Имя пациента
-              doctorId: formatted[i].id
-            };
           }
-          return p;
-        })
+        ],
+        { cancelable: true }
       );
-    }
+    });
+
     console.log("Получил все расписания\nТеперь время нормализовать пары");
-    this.setState({ docList: formatted, docInfo: docData, refreshing: false });
-    this.setState({ loading: false });
   }
 
   handleBackPress = () => {

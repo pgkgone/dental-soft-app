@@ -124,9 +124,24 @@ export class DoctorTimeTable extends React.Component {
   async getTimesM(formatted) {
     //this.getter(i, index).then(r=>{console.log("agaaaa");res(r)}).catch(s=>{console.log("BAD");rej(s)})
     var p = formatted.map((i, index) => {
-      return new Promise((res, rej) => {this.getter(i,index).then(e=>{res(e)}).catch(e=>{rej(e)})});
-    })
-    return new Promise.all(p).then(e=>{console.log("ended")}).catch(e=>{console.log("AAAAA");throw e});
+      return new Promise((res, rej) => {
+        this.getter(i, index)
+          .then(e => {
+            res(e);
+          })
+          .catch(e => {
+            rej(e);
+          });
+      });
+    });
+    return new Promise.all(p)
+      .then(e => {
+        console.log("ended");
+      })
+      .catch(e => {
+        console.log("AAAAA");
+        throw e;
+      });
   }
   async initApiCall() {
     var times = await Network.GetDatesAll(
@@ -162,30 +177,37 @@ export class DoctorTimeTable extends React.Component {
     //Формируем объект, который отошлём в TableFormatter
     var data = {};
     var dates = [];
-    await this.getTimesM(formatted).catch(e => {
-      console.log("MAIN ERR")
-      Alert.alert(
-        "Ошибка",
-        "Превышен лимит ожидания ответа от сервера",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              this.initApiCall();
+    await this.getTimesM(formatted)
+      .then(re => {
+        for (var i = 0; i < formatted.length; i++) {
+          dates.push({
+            date: formatted[i],
+            cells: this.answs[i]
+          });
+        }
+        data.dates = dates;
+        this.setState({
+          listOfCells: data,
+          dates: formatted,
+          refreshing: false
+        });
+      })
+      .catch(e => {
+        console.log("MAIN ERR:"+e);
+        Alert.alert(
+          "Ошибка",
+          "Ошибка соединения с сервером",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                this.initApiCall();
+              }
             }
-          }
-        ],
-        { cancelable: true }
-      );
-    });
-    for (var i = 0; i < formatted.length; i++) {
-      dates.push({
-        date: formatted[i],
-        cells: this.answs[i]
+          ],
+          { cancelable: true }
+        );
       });
-    }
-    data.dates = dates;
-    this.setState({ listOfCells: data, dates: formatted, refreshing: false });
   }
 
   dateChangedApiCall(datesl) {
