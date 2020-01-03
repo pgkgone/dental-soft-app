@@ -71,7 +71,7 @@ class Network {
       axios({
         method: "post",
         url: this.getUrl(url, port),
-        timeout: 15000, // Wait for 15 seconds
+        timeout: 5000, // Wait for 15 seconds
         data: body,
         headers: {
           "User-Agent": "PostmanRuntime/7.21.0",
@@ -89,18 +89,21 @@ class Network {
           var xml2js = require("xml2js");
           var parser = new xml2js.Parser({ explicitArray: false });
           parser.parseString(parsed, function(err, result) {
+            if(err!=null) reject(err)
             resolve(result);
           });
         })
         .catch(error => {
           console.log("ОШИБКА-"+error)
-          if(error.toString().includes("Request failed with status code 400")){
+          if(error.toString().includes("Request failed with status code 400")||error.toString().includes("timeout") ){
             if(tryc<=3){
               console.log("Поймал и дал шанс")
               resolve(this.GetTimesAll(token, id, date, url, port, timeout, tryc+1))
             } else{
               reject(error);
             }
+          } else{
+            reject(error)
           }
         });
     });
