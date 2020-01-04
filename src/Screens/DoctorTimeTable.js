@@ -117,6 +117,7 @@ export class DoctorTimeTable extends React.Component {
       }
       return p;
     });
+    console.log(form)
     this.answs[ind] = form;
     return true;
   }
@@ -152,6 +153,7 @@ export class DoctorTimeTable extends React.Component {
       this.state.port,
       this.state.timeout
     ).catch(e => {
+      this.initApiCall();
       Alert.alert(
         "Ошибка",
         "Превышен лимит ожидания ответа от сервера",
@@ -159,7 +161,6 @@ export class DoctorTimeTable extends React.Component {
           {
             text: "OK",
             onPress: () => {
-              this.initApiCall();
             }
           }
         ],
@@ -173,7 +174,6 @@ export class DoctorTimeTable extends React.Component {
       .slice(0, this.state.maxColumns);
     //Указываем даты
     console.log("DATES:" + formatted);
-    console.log(formatted[0]);
     this.answs = new Array(formatted.length);
     //Формируем объект, который отошлём в TableFormatter
     var data = {};

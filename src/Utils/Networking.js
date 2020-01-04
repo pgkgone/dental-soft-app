@@ -8,7 +8,7 @@ class Network {
 
   static timeout = 16000;
   static getUrl(url, port) {
-    return "http://" + url + ":" + port + "/?wsdl";
+    return "http://" + url + ":" + port;
   }
 
   static async GetDocsAll(token, date, url, port, timeout) {
@@ -55,52 +55,57 @@ class Network {
   }
 
   static async GetTimesAll(token, id, date, url, port, timeout, tryc=0) {
-    //await this.sleep(timeout);
+    await this.sleep(Math.floor(Math.random() * 1250)+10 );
     console.log("GetDates")
     var body =
-      '<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><GetTimesAll xmlns="urn:grvssl"><tokenId>' +
+      '<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:grvssl" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><SOAP-ENV:Body><ns1:GetTimesAll><tokenId xsi:type="xsd:string">' +
       token +
-      "</tokenId><docId>" +
+      '</tokenId><docId xsi:type="xsd:int">' +
       id +
-      "</docId><datez>" +
+      '</docId><datez xsi:type="xsd:string">' +
       date +
-      "</datez></GetTimesAll></Body></Envelope>";
+      "</datez></ns1:GetTimesAll></SOAP-ENV:Body></SOAP-ENV:Envelope>";
       console.log(body)
     const axios = require("axios");
     return new Promise((resolve, reject) => {
       axios({
         method: "post",
         url: this.getUrl(url, port),
-        timeout: 15000, // Wait for 15 seconds
+        timeout: 5000, // Wait for 5 seconds
         data: body,
         headers: {
-          "User-Agent": "PostmanRuntime/7.21.0",
-          Accept: "*/*",
-          "Cache-Control": "no-cache",
+          "User-Agent": "PHP-SOAP/7.0.33-0+deb9u6",
           Host: url + ":" + port,
-          "Accept-Encoding": "gzip, deflate",
+          "Connection":"Keep-Alive",
+          "Content-Type":"text/xml; charset=utf-8",
+          "SOAPAction": "",
           "Content-Length": body.length
         }
       })
         .then(response => {
+          console.log("gotted response")
           var d = response.data;
+          if(d===undefined|| d===null) reject(new Error("err"))
           var index = d.indexOf("<rows>");
           var parsed = d.substr(index, d.indexOf("</rows>") + 7 - index);
           var xml2js = require("xml2js");
           var parser = new xml2js.Parser({ explicitArray: false });
           parser.parseString(parsed, function(err, result) {
+            if(err!=null) reject(err)
             resolve(result);
           });
         })
         .catch(error => {
           console.log("ОШИБКА-"+error)
-          if(error.toString().includes("Request failed with status code 400")){
+          if(error.toString().includes("Request failed with status code 400")||error.toString().includes("timeout") ){
             if(tryc<=3){
               console.log("Поймал и дал шанс")
               resolve(this.GetTimesAll(token, id, date, url, port, timeout, tryc+1))
             } else{
               reject(error);
             }
+          } else{
+            reject(error)
           }
         });
     });
@@ -108,6 +113,8 @@ class Network {
 
   static async GetDatesAll(token, id, date, url, port, timeout) {
     //await this.sleep(timeout)await this.sleep(timeout);
+
+  
     var body =
       '<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><GetDatesAll xmlns="urn:grvssl"><tokenId>' +
       token +
