@@ -53,7 +53,7 @@ export class NavigationHeader extends React.Component {
     if (
       this.props.hasOwnProperty("nextdate") &&
       this.props.nextdate != null &&
-      this.props.nextdate.length > 2
+      this.props.nextdate.length >= 2
     ) {
       console.log("next date is" + this.props.nextdate[1]);
       console.log("date1!!" + new Date(this.state.currentDate))
