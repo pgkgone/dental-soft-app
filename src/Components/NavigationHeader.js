@@ -58,7 +58,7 @@ export class NavigationHeader extends React.Component {
       console.log("next date is" + this.props.nextdate[1]);
       console.log("date1!!" + new Date(this.state.currentDate))
       console.log("date!2" + new Date(this.props.nextdate[0]))
-      if(new Date(this.state.currentDate).getTime() === new Date(this.props.nextdate[0]).getTime())
+      if(new Date(this.state.currentDate).getDate() === new Date(this.props.nextdate[0]).getDate())
       {
         this.handleDatePicked(new Date(this.props.nextdate[1]));
       }else{
