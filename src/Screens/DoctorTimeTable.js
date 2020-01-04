@@ -117,7 +117,6 @@ export class DoctorTimeTable extends React.Component {
       }
       return p;
     });
-    console.log(form)
     this.answs[ind] = form;
     return true;
   }
@@ -135,14 +134,10 @@ export class DoctorTimeTable extends React.Component {
           });
       });
     });
-    return new Promise.all(p)
-      .then(e => {
-        console.log("ended");
-      })
-      .catch(e => {
-        console.log("AAAAA");
-        throw e;
-      });
+    for(var i=0;i<p.length;i++){
+      await this.getter(formatted[i],i);
+    }
+
   }
   async initApiCall() {
     var times = await Network.GetDatesAll(
@@ -153,62 +148,64 @@ export class DoctorTimeTable extends React.Component {
       this.state.port,
       this.state.timeout
     ).catch(e => {
-      this.initApiCall();
       Alert.alert(
         "Ошибка",
         "Превышен лимит ожидания ответа от сервера",
         [
           {
-            text: "OK",
+            text: "Попробовать снова",
             onPress: () => {
+              this.initApiCall();
             }
           }
         ],
         { cancelable: true }
       );
     });
-    var formatted = times.rows.row
-      .map(item => {
-        return item.name;
-      })
-      .slice(0, this.state.maxColumns);
-    //Указываем даты
-    console.log("DATES:" + formatted);
-    this.answs = new Array(formatted.length);
-    //Формируем объект, который отошлём в TableFormatter
-    var data = {};
-    var dates = [];
-    await this.getTimesM(formatted)
-      .then(re => {
-        for (var i = 0; i < formatted.length; i++) {
-          dates.push({
-            date: formatted[i],
-            cells: this.answs[i]
+    if (times.rows != undefined) {
+      var formatted = times.rows.row
+        .map(item => {
+          return item.name;
+        })
+        .slice(0, this.state.maxColumns);
+      //Указываем даты
+      console.log("DATES:" + formatted);
+      this.answs = new Array(formatted.length);
+      //Формируем объект, который отошлём в TableFormatter
+      var data = {};
+      var dates = [];
+      await this.getTimesM(formatted)
+        .then(re => {
+          for (var i = 0; i < formatted.length; i++) {
+            dates.push({
+              date: formatted[i],
+              cells: this.answs[i]
+            });
+          }
+          data.dates = dates;
+          this.setState({
+            listOfCells: data,
+            dates: formatted,
+            refreshing: false
           });
-        }
-        data.dates = dates;
-        this.setState({
-          listOfCells: data,
-          dates: formatted,
-          refreshing: false
-        });
-      })
-      .catch(e => {
-        console.log("MAIN ERR:"+e);
-        Alert.alert(
-          "Ошибка",
-          "Ошибка соединения с сервером",
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                this.initApiCall();
+        })
+        .catch(e => {
+          console.log("MAIN ERR:" + e);
+          Alert.alert(
+            "Ошибка",
+            "Ошибка соединения с сервером",
+            [
+              {
+                text: "OK",
+                onPress: () => {
+                  this.initApiCall();
+                }
               }
-            }
-          ],
-          { cancelable: true }
-        );
-      });
+            ],
+            { cancelable: true }
+          );
+        });
+    }
   }
 
   dateChangedApiCall(datesl) {
@@ -271,7 +268,7 @@ export class DoctorTimeTable extends React.Component {
                   this.props.navigation.navigate("Settings")
                 }
                 date={this.state.date}
-                nextdate = {this.state.dates}
+                nextdate={this.state.dates}
               />
             </Body>
           </Header>
@@ -316,7 +313,7 @@ export class DoctorTimeTable extends React.Component {
                   this.props.navigation.navigate("Settings")
                 }
                 date={this.state.date}
-                nextdate = {this.state.dates}
+                nextdate={this.state.dates}
               />
             </Body>
           </Header>

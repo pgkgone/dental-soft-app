@@ -43,7 +43,7 @@ export class AdminTimeTable extends React.Component {
     docList: null,
     docInfo: null,
     showEditTable: false,
-    timeout:50,
+    timeout: 50,
     screenWidth: Math.round(Dimensions.get("window").width) * PixelRatio.get(),
     maxDocs: Math.round(
       (Math.round(Dimensions.get("window").width) * PixelRatio.get()) / 350
@@ -131,10 +131,14 @@ export class AdminTimeTable extends React.Component {
 
   async getTimesM(formatted) {
     //this.getter(i, index).then(r=>{console.log("agaaaa");res(r)}).catch(s=>{console.log("BAD");rej(s)})
-    console.log(formatted)
+    console.log(formatted);
     var p = formatted.map((i, index) => {
       return new Promise((res, rej) => {
-        this.getter( this.state.date.slice(0, 10).replace(/-/g, "-"), index,i.id)
+        this.getter(
+          this.state.date.slice(0, 10).replace(/-/g, "-"),
+          index,
+          i.id
+        )
           .then(e => {
             res(e);
           })
@@ -143,6 +147,7 @@ export class AdminTimeTable extends React.Component {
           });
       });
     });
+    /*
     return new Promise.all(p)
       .then(e => {
         console.log("ended");
@@ -151,8 +156,12 @@ export class AdminTimeTable extends React.Component {
         console.log("AAAAA");
         throw e;
       });
+      */
+      for(var i=0;i<p.length;i++){
+        await this.getter( this.state.date.slice(0, 10).replace(/-/g, "-"),i,formatted[i].id);
+      }
+  
   }
-
 
   async initialApiCall() {
     console.log("Start Loading");
@@ -168,7 +177,7 @@ export class AdminTimeTable extends React.Component {
         "Превышен лимит ожидания ответа от сервера",
         [
           {
-            text: "OK",
+            text: "Попробовать снова",
             onPress: () => {
               this.initialApiCall();
             }
@@ -177,36 +186,41 @@ export class AdminTimeTable extends React.Component {
         { cancelable: true }
       );
     });
-    var formatted = docList.rows.row.map(item => {
-      return { id: item.id, name: item.name };
-    });
-    this.answs = new Array(formatted.length);
-    var docData = [];
-    await this.getTimesM(formatted)
-    .then(re => {
-      for (var i = 0; i < formatted.length; i++) {
-        docData.push(this.answs[i])
-      }
-      this.setState({ docList: formatted, docInfo: docData, refreshing: false });
-      this.setState({ loading: false });
-    })
-    .catch(e => {
-      console.log("MAIN ERR:"+e);
-      Alert.alert(
-        "Ошибка",
-        "Ошибка соединения с сервером",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              this.initialApiCall();
-            }
+    if (docList.rows != undefined) {
+      var formatted = docList.rows.row.map(item => {
+        return { id: item.id, name: item.name };
+      });
+      this.answs = new Array(formatted.length);
+      var docData = [];
+      await this.getTimesM(formatted)
+        .then(re => {
+          for (var i = 0; i < formatted.length; i++) {
+            docData.push(this.answs[i]);
           }
-        ],
-        { cancelable: true }
-      );
-    });
-
+          this.setState({
+            docList: formatted,
+            docInfo: docData,
+            refreshing: false
+          });
+          this.setState({ loading: false });
+        })
+        .catch(e => {
+          console.log("MAIN ERR:" + e);
+          Alert.alert(
+            "Ошибка",
+            "Ошибка соединения с сервером",
+            [
+              {
+                text: "OK",
+                onPress: () => {
+                  this.initialApiCall();
+                }
+              }
+            ],
+            { cancelable: true }
+          );
+        });
+    }
     console.log("Получил все расписания\nТеперь время нормализовать пары");
   }
 
@@ -216,7 +230,7 @@ export class AdminTimeTable extends React.Component {
 
   async componentDidMount() {
     var p = await SecureStore.getItemAsync("timeout");
-    this.setState({timeout:Number(p) });
+    this.setState({ timeout: Number(p) });
     this.backHandler = BackHandler.addEventListener(
       "hardwareBackPress",
       this.handleBackPress
@@ -300,7 +314,7 @@ kab - № кабинета
       this.state.url,
       this.state.port,
       this.state.timeout
-    ).catch((e)=>{
+    ).catch(e => {
       var msg = "";
       if (e.includes("Validation constraint violation")) {
         msg = "Неверная норма времени";
@@ -319,18 +333,25 @@ kab - № кабинета
         cancelable: true
       });
     });
-  
+
     if (d.includes("STATE-OK")) {
       Alert.alert(
         "Ок",
         "Успешно изменено, данные обновляются",
-        [{ text: "OK", onPress: () => {      this.setState({ showEditTable: false });
-        this.props.update();} }],
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              this.setState({ showEditTable: false });
+              this.props.update();
+            }
+          }
+        ],
         { cancelable: true }
       );
     }
   }
-  
+
   showEditTable(newState) {
     this.setState(newState);
   }
@@ -490,7 +511,7 @@ kab - № кабинета
             alignItems: "center",
             paddingTop: 8,
             zIndex: 200,
-            position: "absolute",
+            position: "absolute"
           }}
         >
           <Spinner color="red" />
@@ -510,7 +531,7 @@ kab - № кабинета
               justifyContent: "center",
               backgroundColor: "#a52b2a",
               shadowOpacity: 0, //for ios
-              borderBottomWidth: 0, //for ios
+              borderBottomWidth: 0 //for ios
             }}
           >
             <Body
@@ -533,7 +554,7 @@ kab - № кабинета
               flex: 1,
               flexDirection: "column",
               justifyContent: "center",
-              backgroundColor:"#F1FFF0"
+              backgroundColor: "#F1FFF0"
             }}
           >
             <Spinner color="red" />
