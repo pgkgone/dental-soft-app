@@ -285,6 +285,13 @@ export class DoctorTimeTable extends React.Component {
         </Container>
       );
     } else
+      var apiCurrentDate;
+      if(this.state.dates !== null && this.state.dates.length >= 1)
+      {
+        apiCurrentDate = this.state.dates[0]
+      }else {
+        apiCurrentDate = this.getISODate()
+      }
       return (
         <Container
           onLayout={e => {
@@ -312,7 +319,7 @@ export class DoctorTimeTable extends React.Component {
                 navigateToSettings={() =>
                   this.props.navigation.navigate("Settings")
                 }
-                date={this.state.date}
+                date={apiCurrentDate}
                 nextdate={this.state.dates}
               />
             </Body>
