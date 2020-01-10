@@ -123,21 +123,12 @@ export class DoctorTimeTable extends React.Component {
 
   async getTimesM(formatted) {
     //this.getter(i, index).then(r=>{console.log("agaaaa");res(r)}).catch(s=>{console.log("BAD");rej(s)})
-    var p = formatted.map((i, index) => {
-      return new Promise((res, rej) => {
-        this.getter(i, index)
-          .then(e => {
-            res(e);
-          })
-          .catch(e => {
-            rej(e);
-          });
-      });
-    });
-    for(var i=0;i<p.length;i++){
+    /*
+    for(var i=0;i<formatted.length;i++){
       await this.getter(formatted[i],i);
     }
-
+    */
+    await new Promise.all(formatted.map((i,index)=>{return new Promise((res,rej)=>{this.getter(i,index).then(r=>{res(r)}).catch(e=>{rej(e)})})})).then(e=>{console.log("ended")}).catch(r=>{throw r})
   }
   async initApiCall() {
     var times = await Network.GetDatesAll(
@@ -155,12 +146,12 @@ export class DoctorTimeTable extends React.Component {
           {
             text: "Попробовать снова",
             onPress: () => {
-              this.initApiCall();
             }
           }
         ],
         { cancelable: true }
       );
+      this.initApiCall();
     });
     if (times.rows != undefined) {
       var formatted = times.rows.row
@@ -196,14 +187,14 @@ export class DoctorTimeTable extends React.Component {
             "Ошибка соединения с сервером",
             [
               {
-                text: "OK",
+                text: "Попробовать снова",
                 onPress: () => {
-                  this.initApiCall();
                 }
               }
             ],
             { cancelable: true }
           );
+          this.initApiCall();
         });
     }
   }
@@ -404,6 +395,11 @@ class Table extends React.Component {
           if (e.includes("Слишком большое время")) {
             msg =
               "Слишком большое время на прием, так как кто-то уже записан на следующее время, конфликтующее с текущей нормой";
+          } else{
+            if(e.includes("Ф.И.О.")){
+              msg =
+              "Введите описание!";
+            }
           }
         }
       }
@@ -421,13 +417,13 @@ class Table extends React.Component {
           {
             text: "OK",
             onPress: () => {
-              this.setState({ showEditTable: false });
-              this.props.update();
             }
           }
         ],
         { cancelable: true }
       );
+      this.setState({ showEditTable: false });
+      this.props.update();
     }
   }
 

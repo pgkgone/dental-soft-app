@@ -70,8 +70,7 @@ export class AdminTimeTable extends React.Component {
       Math.round(Dimensions.get("window").width) * PixelRatio.get();
     var maxDocs = Math.round(screenWidth / 350);
     console.log(maxDocs);
-    this.generateTable();
-    this.setState({ maxDocs: maxDocs });
+    this.setState({ maxDocs: maxDocs },()=>{this.generateTable()});
   }
 
   dateChangedApiCall(datesl) {
@@ -112,7 +111,7 @@ export class AdminTimeTable extends React.Component {
           time: item.name,
           doctorId: forDoc,
           date: forUrl,
-          name: "" //Имя пациента
+          prim: "" //Имя пациента
         };
       } else {
         p = {
@@ -120,7 +119,7 @@ export class AdminTimeTable extends React.Component {
           time: item.name,
           doctorId: forDoc,
           date: forUrl,
-          name: item.id.split(", ")[0] //Имя пациента
+          prim: item.id.split(", ")[0] //Имя пациента
         };
       }
       return p;
@@ -132,6 +131,7 @@ export class AdminTimeTable extends React.Component {
   async getTimesM(formatted) {
     //this.getter(i, index).then(r=>{console.log("agaaaa");res(r)}).catch(s=>{console.log("BAD");rej(s)})
     console.log(formatted);
+    /*
     var p = formatted.map((i, index) => {
       return new Promise((res, rej) => {
         this.getter(
@@ -147,6 +147,9 @@ export class AdminTimeTable extends React.Component {
           });
       });
     });
+    */
+    var cdata=this.state.date.slice(0, 10).replace(/-/g, "-")
+    await new Promise.all(formatted.map((i,index)=>{return new Promise((res,rej)=>{this.getter(cdata,index,i.id).then(r=>{res(r)}).catch(e=>{rej(e)})})})).then(e=>{console.log("ended")}).catch(r=>{throw r})
     /*
     return new Promise.all(p)
       .then(e => {
@@ -157,10 +160,12 @@ export class AdminTimeTable extends React.Component {
         throw e;
       });
       */
+     /*
       for(var i=0;i<p.length;i++){
         await this.getter( this.state.date.slice(0, 10).replace(/-/g, "-"),i,formatted[i].id);
       }
-  
+      */
+
   }
 
   async initialApiCall() {
@@ -179,12 +184,12 @@ export class AdminTimeTable extends React.Component {
           {
             text: "Попробовать снова",
             onPress: () => {
-              this.initialApiCall();
             }
           }
         ],
         { cancelable: true }
       );
+      this.initialApiCall();
     });
     if (docList.rows != undefined) {
       var formatted = docList.rows.row.map(item => {
@@ -211,14 +216,14 @@ export class AdminTimeTable extends React.Component {
             "Ошибка соединения с сервером",
             [
               {
-                text: "OK",
+                text: "Попробовать снова",
                 onPress: () => {
-                  this.initialApiCall();
                 }
               }
             ],
             { cancelable: true }
           );
+          this.initialApiCall();
         });
     }
     console.log("Получил все расписания\nТеперь время нормализовать пары");
@@ -325,6 +330,11 @@ kab - № кабинета
           if (e.includes("Слишком большое время")) {
             msg =
               "Слишком большое время на прием, так как кто-то уже записан на следующее время, конфликтующее с текущей нормой";
+          } else{
+            if(e.includes("Ф.И.О.")){
+              msg =
+              "Введите описание!";
+            }
           }
         }
       }
@@ -342,13 +352,13 @@ kab - № кабинета
           {
             text: "OK",
             onPress: () => {
-              this.setState({ showEditTable: false });
-              this.props.update();
             }
           }
         ],
         { cancelable: true }
       );
+      this.setState({ showEditTable: false });
+      this.initialApiCall()
     }
   }
 

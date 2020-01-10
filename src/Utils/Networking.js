@@ -48,9 +48,9 @@ class Network {
   }
 
   static async GetTimesAll(token, id, date, url, port, timeout, tryc=0) {
-    await this.sleep(timeout);
+    //await this.sleep(timeout);
     var body ='<?xml version="1.0" encoding="UTF-8"?>\r\n<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:grvssl" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><SOAP-ENV:Body><ns1:GetTimesAll><tokenId xsi:type="xsd:string">'+token+'</tokenId><docId xsi:type="xsd:int">'+id+'</docId><datez xsi:type="xsd:string">'+date+'</datez></ns1:GetTimesAll></SOAP-ENV:Body></SOAP-ENV:Envelope>\r\n';
-      console.log(body)
+    console.log(date)
     const axios = require("axios");
     return new Promise((resolve, reject) => {
       axios({
