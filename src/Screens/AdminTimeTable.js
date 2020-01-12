@@ -10,7 +10,8 @@ import {
   Dimensions,
   PixelRatio,
   Alert,
-  BackHandler
+  BackHandler,
+  AppState
 } from "react-native";
 import { Container, Header, Body, Spinner } from "native-base";
 import DateTimePicker from "react-native-modal-datetime-picker";
@@ -42,6 +43,7 @@ export class AdminTimeTable extends React.Component {
     date: this.getISODate(),
     docList: null,
     docInfo: null,
+    refresher:false,
     showEditTable: false,
     timeout: 50,
     screenWidth: Math.round(Dimensions.get("window").width) * PixelRatio.get(),
@@ -63,6 +65,20 @@ export class AdminTimeTable extends React.Component {
       ]
     ])
   };
+
+  _handleAppStateChange = (nextAppState) => {
+    console.log(nextAppState)
+    if(nextAppState==='active' && !this.state.refreshing){
+      this.setState({refreshing:true},()=>{this.initialApiCall()})
+    }
+  };
+
+  onRefresher(){
+    this.setState({refreshing:true,refresher:true})
+    this.initialApiCall()
+    this.setState({refresher:false})
+  }
+
 
   onLayout(e) {
     console.log("here");
@@ -103,6 +119,33 @@ export class AdminTimeTable extends React.Component {
       console.log(e);
       throw e;
     });
+
+    if(pa.rows.row[0]===undefined){
+      form=[]
+      var p
+      if (Object.entries(pa.rows.row.id).length === 0) {
+        p = {
+          visitNum: "", //Цель визита
+          time: pa.rows.row.name,
+          doctorId: this.state.doctorId,
+          date: forUrl,
+          name: "" //Имя пациента
+        };
+      } else {
+        p = {
+          visitNum: pa.rows.row.id.split(",")[1], //Цель визита
+          time: pa.rows.row.name,
+          doctorId: this.state.doctorId,
+          date: forUrl,
+          name: pa.rows.row.id.split(", ")[0] //Имя пациента
+        };
+      }
+      form.push(p)
+      this.answs[ind] = form;
+      return true;
+    }
+
+    
     var form = pa.rows.row.map(item => {
       var p = null;
       if (Object.entries(item.id).length === 0) {
@@ -184,12 +227,12 @@ export class AdminTimeTable extends React.Component {
           {
             text: "Попробовать снова",
             onPress: () => {
+              this.initialApiCall();
             }
           }
         ],
-        { cancelable: true }
+        { cancelable: false }
       );
-      this.initialApiCall();
     });
     if (docList.rows != undefined) {
       var formatted = docList.rows.row.map(item => {
@@ -234,6 +277,7 @@ export class AdminTimeTable extends React.Component {
   };
 
   async componentDidMount() {
+    AppState.addEventListener('change', this._handleAppStateChange);
     var p = await SecureStore.getItemAsync("timeout");
     this.setState({ timeout: Number(p) });
     this.backHandler = BackHandler.addEventListener(
@@ -320,9 +364,14 @@ kab - № кабинета
       this.state.port,
       this.state.timeout
     ).catch(e => {
+      console.log("ОШИБКА");
       var msg = "";
       if (e.includes("Validation constraint violation")) {
         msg = "Неверная норма времени";
+      }
+      if (e.includes('<SOAP-ENV:Detail>')) {
+        var index = e.indexOf('<SOAP-ENV:Detail>');
+        msg = e.substr(index + 17, e.indexOf("</SOAP-ENV:Detail>") - index - 17);
       } else {
         if (e.includes("Нет такого")) {
           msg = "Нет такого № кабинета " + data.kab;
@@ -330,35 +379,36 @@ kab - № кабинета
           if (e.includes("Слишком большое время")) {
             msg =
               "Слишком большое время на прием, так как кто-то уже записан на следующее время, конфликтующее с текущей нормой";
-          } else{
-            if(e.includes("Ф.И.О.")){
-              msg =
-              "Введите описание!";
+          } else {
+            if (e.includes("Ф.И.О.")) {
+              msg = "Введите описание!";
             }
           }
         }
       }
+      console.log("ОШИИИИИБКА");
+
       if (msg === "") msg = "Превышен лимит ожидания от сервера";
       Alert.alert("Ошибка", msg, [{ text: "OK", onPress: () => {} }], {
         cancelable: true
       });
     });
-
-    if (d.includes("STATE-OK")) {
-      Alert.alert(
-        "Ок",
-        "Успешно изменено, данные обновляются",
-        [
-          {
-            text: "OK",
-            onPress: () => {
+    if (d != undefined) {
+      if (d.includes("STATE-OK")) {
+        Alert.alert(
+          "Ок",
+          "Успешно изменено, данные обновляются",
+          [
+            {
+              text: "OK",
+              onPress: () => {}
             }
-          }
-        ],
-        { cancelable: true }
-      );
-      this.setState({ showEditTable: false });
-      this.initialApiCall()
+          ],
+          { cancelable: true }
+        );
+        this.setState({ showEditTable: false });
+        this.initialApiCall()
+      }
     }
   }
 
@@ -579,7 +629,10 @@ kab - № кабинета
             style={{
               flexDirection: "row",
               justifyContent: "center",
-              backgroundColor: "#a52b2a"
+              backgroundColor: "#a52b2a",
+              backgroundColor: colors.background,
+              borderBottomWidth: 0,
+              height: 0,
             }}
           >
             <Body
@@ -597,12 +650,15 @@ kab - № кабинета
                 date={this.state.date}
               />
             </Body>
+
           </Header>
           {this.drawEditTable()}
           {this.refreshingSpinner()}
           <FlatList
             data={this.generateTable(this.state.maxDocs)}
             renderItem={({ item }) => item}
+            refreshing={this.state.refresher}
+            onRefresh={()=>{this.onRefresher()}}
             keyExtractor={(item, index) => index}
           />
         </Container>

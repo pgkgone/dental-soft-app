@@ -76,7 +76,10 @@ class Network {
           var xml2js = require("xml2js");
           var parser = new xml2js.Parser({ explicitArray: false });
           parser.parseString(parsed, function(err, result) {
-            if(err!=null) reject(err)
+            if(err!=null){
+              console.log(response.data)
+            reject(err)
+            }
             resolve(result);
           });
         })

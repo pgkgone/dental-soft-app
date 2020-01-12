@@ -9,7 +9,8 @@ import {
   PixelRatio,
   BackHandler,
   Alert,
-  Modal
+  Modal,
+  AppState
 } from "react-native";
 import { Container, Header, Body, Form, Spinner } from "native-base";
 import { NavigationHeader } from "../Components/NavigationHeader";
@@ -30,6 +31,7 @@ export class DoctorTimeTable extends React.Component {
     dates: null,
     myorientation: true,
     listOfCells: null,
+    refresher:false,
     doctorId: this.props.navigation.state.params.data.doctorId, //через пропс обязательно получаем
     date: this.getISODate(),
     timeout: 50,
@@ -55,6 +57,13 @@ export class DoctorTimeTable extends React.Component {
     this.setState({ myorientation: !this.state.myorientation });
   }
 
+  //refresher for FlatList
+  onRefresher(){
+    this.setState({refreshing:true,refresher:true})
+    this.initApiCall()
+    this.setState({refresher:false})
+  }
+
   getISODate() {
     var date = new Date(); // Or the date you'd like converted.
     var isoDate = new Date(
@@ -72,7 +81,15 @@ export class DoctorTimeTable extends React.Component {
     return true;
   };
 
+  _handleAppStateChange = (nextAppState) => {
+    console.log(nextAppState)
+    if(nextAppState==='active' && !this.state.refreshing){
+      this.setState({refreshing:true},()=>{this.initApiCall()})
+    }
+  };
+
   async componentDidMount() {
+    AppState.addEventListener('change', this._handleAppStateChange);
     var p = await SecureStore.getItemAsync("timeout");
     this.backHandler = BackHandler.addEventListener(
       "hardwareBackPress",
@@ -96,6 +113,32 @@ export class DoctorTimeTable extends React.Component {
       console.log(e);
       throw e;
     });
+
+    if (pa.rows.row[0] === undefined) {
+      form = [];
+      var p;
+      if (Object.entries(pa.rows.row.id).length === 0) {
+        p = {
+          visitNum: "", //Цель визита
+          time: pa.rows.row.name,
+          doctorId: this.state.doctorId,
+          date: forUrl,
+          name: "" //Имя пациента
+        };
+      } else {
+        p = {
+          visitNum: pa.rows.row.id.split(",")[1], //Цель визита
+          time: pa.rows.row.name,
+          doctorId: this.state.doctorId,
+          date: forUrl,
+          name: pa.rows.row.id.split(", ")[0] //Имя пациента
+        };
+      }
+      form.push(p);
+      this.answs[ind] = form;
+      return true;
+    }
+
     var form = pa.rows.row.map(item => {
       var p = null;
       if (Object.entries(item.id).length === 0) {
@@ -128,7 +171,25 @@ export class DoctorTimeTable extends React.Component {
       await this.getter(formatted[i],i);
     }
     */
-    await new Promise.all(formatted.map((i,index)=>{return new Promise((res,rej)=>{this.getter(i,index).then(r=>{res(r)}).catch(e=>{rej(e)})})})).then(e=>{console.log("ended")}).catch(r=>{throw r})
+    await new Promise.all(
+      formatted.map((i, index) => {
+        return new Promise((res, rej) => {
+          this.getter(i, index)
+            .then(r => {
+              res(r);
+            })
+            .catch(e => {
+              rej(e);
+            });
+        });
+      })
+    )
+      .then(e => {
+        console.log("ended");
+      })
+      .catch(r => {
+        throw r;
+      });
   }
   async initApiCall() {
     var times = await Network.GetDatesAll(
@@ -146,12 +207,12 @@ export class DoctorTimeTable extends React.Component {
           {
             text: "Попробовать снова",
             onPress: () => {
+              this.initApiCall();
             }
           }
         ],
-        { cancelable: true }
+        { cancelable: false }
       );
-      this.initApiCall();
     });
     if (times.rows != undefined) {
       var formatted = times.rows.row
@@ -188,8 +249,7 @@ export class DoctorTimeTable extends React.Component {
             [
               {
                 text: "Попробовать снова",
-                onPress: () => {
-                }
+                onPress: () => {}
               }
             ],
             { cancelable: true }
@@ -275,63 +335,68 @@ export class DoctorTimeTable extends React.Component {
           </View>
         </Container>
       );
-    } else
-      var apiCurrentDate;
-      if(this.state.dates !== null && this.state.dates.length >= 1)
-      {
-        apiCurrentDate = this.state.dates[0]
-      }else {
-        apiCurrentDate = this.getISODate()
-      }
-      return (
-        <Container
-          onLayout={e => {
-            this.onLayout(e);
+    } else var apiCurrentDate;
+    if (this.state.dates !== null && this.state.dates.length >= 1) {
+      apiCurrentDate = this.state.dates[0];
+    } else {
+      apiCurrentDate = this.getISODate();
+    }
+    return (
+      <Container
+        onLayout={e => {
+          this.onLayout(e);
+        }}
+      >
+        {this.refreshingSpinner()}
+        <Header
+          androidStatusBarColor="#a52b2a"
+          style={{
+            flexDirection: "row",
+            justifyContent: "center",
+            backgroundColor: "#a52b2a",
+            borderBottomWidth: 0,
+            elevation: 0,
+            shadowOpacity: 0,
           }}
         >
-          {this.refreshingSpinner()}
-          <Header
-            androidStatusBarColor="#a52b2a"
+          <Body
             style={{
               flexDirection: "row",
               justifyContent: "center",
               backgroundColor: "#a52b2a"
             }}
           >
-            <Body
-              style={{
-                flexDirection: "row",
-                justifyContent: "center",
-                backgroundColor: "#a52b2a"
-              }}
-            >
-              <NavigationHeader
-                apiCall={date => this.dateChangedApiCall(date)}
-                navigateToSettings={() =>
-                  this.props.navigation.navigate("Settings")
-                }
-                date={apiCurrentDate}
-                nextdate={this.state.dates}
-              />
-            </Body>
-          </Header>
-          <Table
-            data={this.state.listOfCells}
-            headerData={this.state.dates}
-            doctorId={this.state.doctorId}
-            token={this.state.token}
-            url={this.state.url}
-            port={this.state.port}
-            update={() => {
-              this.initApiCall();
-            }}
-            myorientation={this.state.myorientation}
-          ></Table>
-        </Container>
-      );
+            <NavigationHeader
+              apiCall={date => this.dateChangedApiCall(date)}
+              navigateToSettings={() =>
+                this.props.navigation.navigate("Settings")
+              }
+              date={apiCurrentDate}
+              nextdate={this.state.dates}
+            />
+          </Body>
+        </Header>
+        <Table
+          data={this.state.listOfCells}
+          headerData={this.state.dates}
+          doctorId={this.state.doctorId}
+          token={this.state.token}
+          url={this.state.url}
+          port={this.state.port}
+          update={() => {
+            this.initApiCall();
+          }}
+          onRefresher={()=>{this.onRefresher()}}
+          refreshing={this.state.refresher}
+          myorientation={this.state.myorientation}
+        ></Table>
+      </Container>
+    );
   }
 }
 
+//refreshing={this.props.refreshing}
+//onRefresh={()=>{this.props.onRefresher}}
 class Table extends React.Component {
   constructor(props) {
     super(props);
@@ -385,9 +450,14 @@ class Table extends React.Component {
       this.state.port,
       this.state.timeout
     ).catch(e => {
+      console.log("ОШИБКА");
       var msg = "";
       if (e.includes("Validation constraint violation")) {
         msg = "Неверная норма времени";
+      }
+      if (e.includes('<SOAP-ENV:Detail>')) {
+        var index = e.indexOf('<SOAP-ENV:Detail>');
+        msg = e.substr(index + 17, e.indexOf("</SOAP-ENV:Detail>") - index - 17);
       } else {
         if (e.includes("Нет такого")) {
           msg = "Нет такого № кабинета " + data.kab;
@@ -395,35 +465,36 @@ class Table extends React.Component {
           if (e.includes("Слишком большое время")) {
             msg =
               "Слишком большое время на прием, так как кто-то уже записан на следующее время, конфликтующее с текущей нормой";
-          } else{
-            if(e.includes("Ф.И.О.")){
-              msg =
-              "Введите описание!";
+          } else {
+            if (e.includes("Ф.И.О.")) {
+              msg = "Введите описание!";
             }
           }
         }
       }
+      console.log("ОШИИИИИБКА");
+
       if (msg === "") msg = "Превышен лимит ожидания от сервера";
       Alert.alert("Ошибка", msg, [{ text: "OK", onPress: () => {} }], {
         cancelable: true
       });
     });
-
-    if (d.includes("STATE-OK")) {
-      Alert.alert(
-        "Ок",
-        "Успешно изменено, данные обновляются",
-        [
-          {
-            text: "OK",
-            onPress: () => {
+    if (d != undefined) {
+      if (d.includes("STATE-OK")) {
+        Alert.alert(
+          "Ок",
+          "Успешно изменено, данные обновляются",
+          [
+            {
+              text: "OK",
+              onPress: () => {}
             }
-          }
-        ],
-        { cancelable: true }
-      );
-      this.setState({ showEditTable: false });
-      this.props.update();
+          ],
+          { cancelable: true }
+        );
+        this.setState({ showEditTable: false });
+        this.props.update();
+      }
     }
   }
 
@@ -580,6 +651,8 @@ class Table extends React.Component {
           {this.drawEditTable()}
           <FlatList
             key={this.state.numColumns}
+            refreshing={this.props.refreshing}
+            onRefresh={()=>{this.props.onRefresher()}}
             data={this.TableFormatter(
               this.state.data.dates.slice(0, this.state.numColumns)
             )}
