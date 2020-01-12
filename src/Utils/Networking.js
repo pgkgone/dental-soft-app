@@ -1,8 +1,9 @@
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
 class Network {
   //TODO PORT SUPPORT
 
   static sleep(ms) {
+    console.log("Sleeping:" + ms);
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
@@ -13,7 +14,12 @@ class Network {
 
   static async GetDocsAll(token, date, url, port, timeout) {
     //await this.sleep(timeout);
-    var body ='<?xml version="1.0" encoding="UTF-8"?>\r\n<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:grvssl" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><SOAP-ENV:Body><ns1:GetDocsAll><tokenId xsi:type="xsd:string">'+token+'</tokenId><datez xsi:type="xsd:string">'+date+'</datez></ns1:GetDocsAll></SOAP-ENV:Body></SOAP-ENV:Envelope>\r\n';
+    var body =
+      '<?xml version="1.0" encoding="UTF-8"?>\r\n<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:grvssl" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><SOAP-ENV:Body><ns1:GetDocsAll><tokenId xsi:type="xsd:string">' +
+      token +
+      '</tokenId><datez xsi:type="xsd:string">' +
+      date +
+      "</datez></ns1:GetDocsAll></SOAP-ENV:Body></SOAP-ENV:Envelope>\r\n";
     console.log(body);
     const axios = require("axios");
     return new Promise((resolve, reject) => {
@@ -25,9 +31,9 @@ class Network {
         headers: {
           "User-Agent": "PHP-SOAP/7.0.33-0+deb9u6",
           Host: url + ":" + port,
-          "Connection":"Keep-Alive",
-          "Content-Type":"text/xml; charset=utf-8",
-          "SOAPAction": "",
+          Connection: "Keep-Alive",
+          "Content-Type": "text/xml; charset=utf-8",
+          SOAPAction: "",
           "Content-Length": body.length
         }
       })
@@ -47,10 +53,17 @@ class Network {
     });
   }
 
-  static async GetTimesAll(token, id, date, url, port, timeout, tryc=0) {
+  static async GetTimesAll(token, id, date, url, port, timeout, tryc = 0) {
     //await this.sleep(timeout);
-    var body ='<?xml version="1.0" encoding="UTF-8"?>\r\n<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:grvssl" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><SOAP-ENV:Body><ns1:GetTimesAll><tokenId xsi:type="xsd:string">'+token+'</tokenId><docId xsi:type="xsd:int">'+id+'</docId><datez xsi:type="xsd:string">'+date+'</datez></ns1:GetTimesAll></SOAP-ENV:Body></SOAP-ENV:Envelope>\r\n';
-    console.log(date)
+    var body =
+      '<?xml version="1.0" encoding="UTF-8"?>\r\n<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:grvssl" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><SOAP-ENV:Body><ns1:GetTimesAll><tokenId xsi:type="xsd:string">' +
+      token +
+      '</tokenId><docId xsi:type="xsd:int">' +
+      id +
+      '</docId><datez xsi:type="xsd:string">' +
+      date +
+      "</datez></ns1:GetTimesAll></SOAP-ENV:Body></SOAP-ENV:Envelope>\r\n";
+    console.log(date);
     const axios = require("axios");
     return new Promise((resolve, reject) => {
       axios({
@@ -61,39 +74,44 @@ class Network {
         headers: {
           "User-Agent": "PHP-SOAP/7.0.33-0+deb9u6",
           Host: url + ":" + port,
-          "Connection":"Keep-Alive",
-          "Content-Type":"text/xml; charset=utf-8",
-          "SOAPAction": "",
+          Connection: "Keep-Alive",
+          "Content-Type": "text/xml; charset=utf-8",
+          SOAPAction: "",
           "Content-Length": body.length
         }
       })
         .then(response => {
-          console.log("gotted response")
+          console.log("gotted response");
           var d = response.data;
-          if(d===undefined|| d===null) reject(new Error("err"))
+          if (d === undefined || d === null) reject(new Error("err"));
           var index = d.indexOf("<rows>");
           var parsed = d.substr(index, d.indexOf("</rows>") + 7 - index);
           var xml2js = require("xml2js");
           var parser = new xml2js.Parser({ explicitArray: false });
           parser.parseString(parsed, function(err, result) {
-            if(err!=null){
-              console.log(response.data)
-            reject(err)
+            if (err != null) {
+              console.log(response.data);
+              reject(err);
             }
             resolve(result);
           });
         })
         .catch(error => {
-          console.log("ОШИБКА-"+error)
-          if(error.toString().includes("Request failed with status code 400")||error.toString().includes("timeout") ){
-            if(tryc<=3){
-              console.log("Поймал и дал шанс")
-              resolve(this.GetTimesAll(token, id, date, url, port, timeout, tryc+1))
-            } else{
+          console.log("ОШИБКА-" + error);
+          if (
+            error.toString().includes("Request failed with status code 400") ||
+            error.toString().includes("timeout")
+          ) {
+            if (tryc <= 3) {
+              console.log("Поймал и дал шанс");
+              resolve(
+                this.GetTimesAll(token, id, date, url, port, timeout, tryc + 1)
+              );
+            } else {
               reject(error);
             }
-          } else{
-            reject(error)
+          } else {
+            reject(error);
           }
         });
     });
@@ -102,9 +120,15 @@ class Network {
   static async GetDatesAll(token, id, date, url, port, timeout) {
     //await this.sleep(timeout)await this.sleep(timeout);
 
-  
-    var body ='<?xml version="1.0" encoding="UTF-8"?>\r\n<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:grvssl" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><SOAP-ENV:Body><ns1:GetDatesAll><tokenId xsi:type="xsd:string">'+token+'</tokenId><docId xsi:type="xsd:int">'+id+'</docId><datez xsi:type="xsd:string">'+date+'</datez></ns1:GetDatesAll></SOAP-ENV:Body></SOAP-ENV:Envelope>\r\n';
-      console.log(body)
+    var body =
+      '<?xml version="1.0" encoding="UTF-8"?>\r\n<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:grvssl" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><SOAP-ENV:Body><ns1:GetDatesAll><tokenId xsi:type="xsd:string">' +
+      token +
+      '</tokenId><docId xsi:type="xsd:int">' +
+      id +
+      '</docId><datez xsi:type="xsd:string">' +
+      date +
+      "</datez></ns1:GetDatesAll></SOAP-ENV:Body></SOAP-ENV:Envelope>\r\n";
+    console.log(body);
     const axios = require("axios");
     return new Promise((resolve, reject) => {
       axios({
@@ -115,9 +139,9 @@ class Network {
         headers: {
           "User-Agent": "PHP-SOAP/7.0.33-0+deb9u6",
           Host: url + ":" + port,
-          "Connection":"Keep-Alive",
-          "Content-Type":"text/xml; charset=utf-8",
-          "SOAPAction": "",
+          Connection: "Keep-Alive",
+          "Content-Type": "text/xml; charset=utf-8",
+          SOAPAction: "",
           "Content-Length": body.length
         }
       })
@@ -181,25 +205,65 @@ class Network {
         headers: {
           "User-Agent": "PHP-SOAP/7.0.33-0+deb9u6",
           Host: url + ":" + port,
-          "Connection":"Keep-Alive",
-          "Content-Type":"text/xml; charset=utf-8",
-          "SOAPAction": "",
+          Connection: "Keep-Alive",
+          "Content-Type": "text/xml; charset=utf-8",
+          SOAPAction: "",
           "Content-Length": body.length
         }
       })
         .then(response => {
           var d = response.data;
-          console.log(d)
+          console.log(d);
           resolve(d);
         })
-        .catch((error) => {
-          console.log(error.response.data)
+        .catch(error => {
+          console.log(error.response.data);
           var d = error.response.data;
           reject(d);
-          });
+        });
     });
   }
 
+  static async forIOS(response) {
+    console.log("For ios")
+    var d = response.data;
+    await this.sleep(800)
+    if (d.includes("STATE-OK")) {
+      Alert.alert(
+        "Ок",
+        "Успешно удалено, данные обновляются",
+        [{ text: "OK", onPress: () => {} }],
+        { cancelable: true }
+      );
+    } else {
+      Alert.alert(
+        "Ошибка",
+        "Невозможно удалить запись",
+        [{ text: "OK", onPress: () => {} }],
+        { cancelable: true }
+      );
+    }
+  }
+
+  static async forIOSErr(error) {
+    await this.sleep(800)
+    var d = error.response.data;
+    if (d.includes("STATE-OK")) {
+      Alert.alert(
+        "Ок",
+        "Успешно удалено, данные обновляются",
+        [{ text: "OK", onPress: () => {} }],
+        { cancelable: true }
+      );
+    } else {
+      Alert.alert(
+        "Ошибка",
+        "Невозможно удалить запись или превышен лимит ожидания ответа от сервера",
+        [{ text: "OK", onPress: () => {} }],
+        { cancelable: true }
+      );
+    }
+  }
   static async DeleteGrvData(token, id, date, time, url, port, timeout) {
     //await this.sleep(timeout);
     var body =
@@ -225,38 +289,48 @@ class Network {
         headers: {
           "User-Agent": "PHP-SOAP/7.0.33-0+deb9u6",
           Host: url + ":" + port,
-          "Connection":"Keep-Alive",
-          "Content-Type":"text/xml; charset=utf-8",
-          "SOAPAction": "",
+          Connection: "Keep-Alive",
+          "Content-Type": "text/xml; charset=utf-8",
+          SOAPAction: "",
           "Content-Length": body.length
         }
       })
         .then(response => {
           var d = response.data;
-          if (d.includes("STATE-OK")) {
-            Alert.alert(
-              "Ок",
-              "Успешно изменено, данные обновляются",
-              [{ text: "OK", onPress: () => {} }],
-              { cancelable: true }
-            );
+          console.log("HERE")
+          if (Platform.OS === "ios") {
+            console.log("for ios")
+            this.forIOS(response)
           } else {
-            Alert.alert(
-              "Ошибка",
-              "Невозможно удалить запись",
-              [{ text: "OK", onPress: () => {} }],
-              { cancelable: true }
-            );
+            if (d.includes("STATE-OK")) {
+              Alert.alert(
+                "Ок",
+                "Успешно удалено, данные обновляются",
+                [{ text: "OK", onPress: () => {} }],
+                { cancelable: true }
+              );
+            } else {
+              Alert.alert(
+                "Ошибка",
+                "Невозможно удалить запись",
+                [{ text: "OK", onPress: () => {} }],
+                { cancelable: true }
+              );
+            }
           }
           resolve(d);
         })
-        .catch((error) => {
-          console.log(error)
+        .catch(error => {
+          if (Platform.OS === "ios") {
+            console.log("for ios")
+            this.forIOS(response)
+          } else {
+          console.log(error);
           var d = error.response.data;
           if (d.includes("STATE-OK")) {
             Alert.alert(
               "Ок",
-              "Успешно изменено, данные обновляются",
+              "Успешно удалено, данные обновляются",
               [{ text: "OK", onPress: () => {} }],
               { cancelable: true }
             );
@@ -268,10 +342,10 @@ class Network {
               { cancelable: true }
             );
           }
+        }
           reject(new Error("Error"));
         });
     });
- 
   }
 
   static async GetGrvData(token, id, date, time, url, port, timeout) {
@@ -297,9 +371,9 @@ class Network {
         headers: {
           "User-Agent": "PHP-SOAP/7.0.33-0+deb9u6",
           Host: url + ":" + port,
-          "Connection":"Keep-Alive",
-          "Content-Type":"text/xml; charset=utf-8",
-          "SOAPAction": "",
+          Connection: "Keep-Alive",
+          "Content-Type": "text/xml; charset=utf-8",
+          SOAPAction: "",
           "Content-Length": body.length
         }
       })

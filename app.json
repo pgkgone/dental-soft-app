@@ -9,7 +9,7 @@
       "android",
       "web"
     ],
-    "version": "1.1.6",
+    "version": "1.2.6",
     "orientation": "default",
     "icon": "./assets/icon1.png",
     "splash": {
@@ -31,7 +31,7 @@
       "package": "com.dentalsoft.dentalapp",
       "permissions": [
       ],
-      "versionCode":5
+      "versionCode":6
     }
   }
 }

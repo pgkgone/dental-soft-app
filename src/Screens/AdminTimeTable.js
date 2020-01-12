@@ -11,7 +11,8 @@ import {
   PixelRatio,
   Alert,
   BackHandler,
-  AppState
+  AppState,
+  Platform
 } from "react-native";
 import { Container, Header, Body, Spinner } from "native-base";
 import DateTimePicker from "react-native-modal-datetime-picker";
@@ -25,6 +26,10 @@ import * as SecureStore from "expo-secure-store";
 export class AdminTimeTable extends React.Component {
   constructor(props) {
     super(props);
+  }
+
+  static sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   //устанавливаем stacknavigation header
@@ -119,7 +124,6 @@ export class AdminTimeTable extends React.Component {
       console.log(e);
       throw e;
     });
-
     if(pa.rows.row[0]===undefined){
       form=[]
       var p
@@ -127,17 +131,17 @@ export class AdminTimeTable extends React.Component {
         p = {
           visitNum: "", //Цель визита
           time: pa.rows.row.name,
-          doctorId: this.state.doctorId,
+          doctorId: forDoc,
           date: forUrl,
-          name: "" //Имя пациента
+          prim: "" //Имя пациента
         };
       } else {
         p = {
           visitNum: pa.rows.row.id.split(",")[1], //Цель визита
           time: pa.rows.row.name,
-          doctorId: this.state.doctorId,
+          doctorId: forDoc,
           date: forUrl,
-          name: pa.rows.row.id.split(", ")[0] //Имя пациента
+          prim: pa.rows.row.id.split(", ")[0] //Имя пациента
         };
       }
       form.push(p)
@@ -395,23 +399,44 @@ kab - № кабинета
     });
     if (d != undefined) {
       if (d.includes("STATE-OK")) {
-        Alert.alert(
-          "Ок",
-          "Успешно изменено, данные обновляются",
-          [
-            {
-              text: "OK",
-              onPress: () => {}
-            }
-          ],
-          { cancelable: true }
-        );
-        this.setState({ showEditTable: false });
+        if(Platform.OS==="ios"){
+          console.log("AAAAAAAAAAAAAA")
+          this.setState({ showEditTable: false,refreshing:true },()=>{this.iosFunc()});
+        } else{
+          Alert.alert(
+            "Ок",
+            "Успешно изменено, данные обновляются",
+            [
+              {
+                text: "OK",
+                onPress: () => {}
+              }
+            ],
+            { cancelable: true }
+          );
+        this.setState({ showEditTable: false,refreshing:true });
         this.initialApiCall()
+        }
       }
     }
   }
 
+  async iosFunc(){
+    console.log("ios")
+    await new Promise(resolve => setTimeout(resolve, 850));
+    Alert.alert(
+      "Ок",
+      "Успешно изменено, данные обновляются",
+      [
+        {
+          text: "OK",
+          onPress: () => {}
+        }
+      ],
+      { cancelable: true }
+    );
+    this.initialApiCall()
+  }
   showEditTable(newState) {
     this.setState(newState);
   }
@@ -623,16 +648,14 @@ kab - № кабинета
       );
     } else
       return (
-        <Container onLayout={this.onLayout.bind(this)}>
+        <Container onLayout={this.onLayout.bind(this)} style={{ backgroundColor: "#F1FFF0"}}>
           <Header
             androidStatusBarColor="#a52b2a"
             style={{
               flexDirection: "row",
               justifyContent: "center",
               backgroundColor: "#a52b2a",
-              backgroundColor: colors.background,
               borderBottomWidth: 0,
-              height: 0,
             }}
           >
             <Body

@@ -31,7 +31,7 @@ export class DoctorTimeTable extends React.Component {
     dates: null,
     myorientation: true,
     listOfCells: null,
-    refresher:false,
+    refresher: false,
     doctorId: this.props.navigation.state.params.data.doctorId, //через пропс обязательно получаем
     date: this.getISODate(),
     timeout: 50,
@@ -58,10 +58,10 @@ export class DoctorTimeTable extends React.Component {
   }
 
   //refresher for FlatList
-  onRefresher(){
-    this.setState({refreshing:true,refresher:true})
-    this.initApiCall()
-    this.setState({refresher:false})
+  onRefresher() {
+    this.setState({ refreshing: true, refresher: true });
+    this.initApiCall();
+    this.setState({ refresher: false });
   }
 
   getISODate() {
@@ -81,15 +81,17 @@ export class DoctorTimeTable extends React.Component {
     return true;
   };
 
-  _handleAppStateChange = (nextAppState) => {
-    console.log(nextAppState)
-    if(nextAppState==='active' && !this.state.refreshing){
-      this.setState({refreshing:true},()=>{this.initApiCall()})
+  _handleAppStateChange = nextAppState => {
+    console.log(nextAppState);
+    if (nextAppState === "active" && !this.state.refreshing) {
+      this.setState({ refreshing: true }, () => {
+        this.initApiCall();
+      });
     }
   };
 
   async componentDidMount() {
-    AppState.addEventListener('change', this._handleAppStateChange);
+    AppState.addEventListener("change", this._handleAppStateChange);
     var p = await SecureStore.getItemAsync("timeout");
     this.backHandler = BackHandler.addEventListener(
       "hardwareBackPress",
@@ -354,9 +356,8 @@ export class DoctorTimeTable extends React.Component {
             flexDirection: "row",
             justifyContent: "center",
             backgroundColor: "#a52b2a",
-            borderBottomWidth: 0,
-            elevation: 0,
-            shadowOpacity: 0,
+            shadowOpacity: 0, //for ios
+            borderBottomWidth: 0 //for ios
           }}
         >
           <Body
@@ -386,7 +387,9 @@ export class DoctorTimeTable extends React.Component {
           update={() => {
             this.initApiCall();
           }}
-          onRefresher={()=>{this.onRefresher()}}
+          onRefresher={() => {
+            this.onRefresher();
+          }}
           refreshing={this.state.refresher}
           myorientation={this.state.myorientation}
         ></Table>
@@ -455,9 +458,12 @@ class Table extends React.Component {
       if (e.includes("Validation constraint violation")) {
         msg = "Неверная норма времени";
       }
-      if (e.includes('<SOAP-ENV:Detail>')) {
-        var index = e.indexOf('<SOAP-ENV:Detail>');
-        msg = e.substr(index + 17, e.indexOf("</SOAP-ENV:Detail>") - index - 17);
+      if (e.includes("<SOAP-ENV:Detail>")) {
+        var index = e.indexOf("<SOAP-ENV:Detail>");
+        msg = e.substr(
+          index + 17,
+          e.indexOf("</SOAP-ENV:Detail>") - index - 17
+        );
       } else {
         if (e.includes("Нет такого")) {
           msg = "Нет такого № кабинета " + data.kab;
@@ -481,23 +487,45 @@ class Table extends React.Component {
     });
     if (d != undefined) {
       if (d.includes("STATE-OK")) {
-        Alert.alert(
-          "Ок",
-          "Успешно изменено, данные обновляются",
-          [
-            {
-              text: "OK",
-              onPress: () => {}
-            }
-          ],
-          { cancelable: true }
-        );
-        this.setState({ showEditTable: false });
-        this.props.update();
+
+        if (Platform.OS === "ios") {
+          this.setState({ showEditTable: false,refreshing:true },()=>{this.iosFunc()});
+        } else {
+          Alert.alert(
+            "Ок",
+            "Успешно изменено, данные обновляются",
+            [
+              {
+                text: "OK",
+                onPress: () => {}
+              }
+            ],
+            { cancelable: true }
+          );
+          this.setState({ showEditTable: false,refreshing:true });
+          this.props.update();
+        }
       }
     }
   }
 
+  async iosFunc(){
+    console.log("ios")
+    await new Promise(resolve => setTimeout(resolve, 850));
+    Alert.alert(
+      "Ок",
+      "Успешно изменено, данные обновляются",
+      [
+        {
+          text: "OK",
+          onPress: () => {}
+        }
+      ],
+      { cancelable: true }
+    );
+    console.log("UPDATED")
+    this.props.update();
+  }
   showEditTable(newState) {
     this.setState(newState);
   }
@@ -652,7 +680,9 @@ class Table extends React.Component {
           <FlatList
             key={this.state.numColumns}
             refreshing={this.props.refreshing}
-            onRefresh={()=>{this.props.onRefresher()}}
+            onRefresh={() => {
+              this.props.onRefresher();
+            }}
             data={this.TableFormatter(
               this.state.data.dates.slice(0, this.state.numColumns)
             )}
