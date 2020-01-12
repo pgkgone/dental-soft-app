@@ -323,7 +323,7 @@ class Network {
         .catch(error => {
           if (Platform.OS === "ios") {
             console.log("for ios")
-            this.forIOS(response)
+            this.forIOSErr(response)
           } else {
           console.log(error);
           var d = error.response.data;
