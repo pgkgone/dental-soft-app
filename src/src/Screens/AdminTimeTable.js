@@ -10,7 +10,8 @@ import {
   Dimensions,
   PixelRatio,
   Alert,
-  BackHandler
+  BackHandler,
+  AppState
 } from "react-native";
 import { Container, Header, Body, Spinner } from "native-base";
 import DateTimePicker from "react-native-modal-datetime-picker";
@@ -42,8 +43,9 @@ export class AdminTimeTable extends React.Component {
     date: this.getISODate(),
     docList: null,
     docInfo: null,
+    refresher:false,
     showEditTable: false,
-    timeout:50,
+    timeout: 50,
     screenWidth: Math.round(Dimensions.get("window").width) * PixelRatio.get(),
     maxDocs: Math.round(
       (Math.round(Dimensions.get("window").width) * PixelRatio.get()) / 350
@@ -64,14 +66,27 @@ export class AdminTimeTable extends React.Component {
     ])
   };
 
+  _handleAppStateChange = (nextAppState) => {
+    console.log(nextAppState)
+    if(nextAppState==='active' && !this.state.refreshing){
+      this.setState({refreshing:true},()=>{this.initialApiCall()})
+    }
+  };
+
+  onRefresher(){
+    this.setState({refreshing:true,refresher:true})
+    this.initialApiCall()
+    this.setState({refresher:false})
+  }
+
+
   onLayout(e) {
     console.log("here");
     var screenWidth =
       Math.round(Dimensions.get("window").width) * PixelRatio.get();
     var maxDocs = Math.round(screenWidth / 350);
     console.log(maxDocs);
-    this.generateTable();
-    this.setState({ maxDocs: maxDocs });
+    this.setState({ maxDocs: maxDocs },()=>{this.generateTable()});
   }
 
   dateChangedApiCall(datesl) {
@@ -104,8 +119,33 @@ export class AdminTimeTable extends React.Component {
       console.log(e);
       throw e;
     });
-    console.log(forUrl+" "+ind+" "+forDoc)
-    console.log(pa)
+
+    if(pa.rows.row[0]===undefined){
+      form=[]
+      var p
+      if (Object.entries(pa.rows.row.id).length === 0) {
+        p = {
+          visitNum: "", //Цель визита
+          time: pa.rows.row.name,
+          doctorId: this.state.doctorId,
+          date: forUrl,
+          name: "" //Имя пациента
+        };
+      } else {
+        p = {
+          visitNum: pa.rows.row.id.split(",")[1], //Цель визита
+          time: pa.rows.row.name,
+          doctorId: this.state.doctorId,
+          date: forUrl,
+          name: pa.rows.row.id.split(", ")[0] //Имя пациента
+        };
+      }
+      form.push(p)
+      this.answs[ind] = form;
+      return true;
+    }
+
+    
     var form = pa.rows.row.map(item => {
       var p = null;
       if (Object.entries(item.id).length === 0) {
@@ -133,10 +173,15 @@ export class AdminTimeTable extends React.Component {
 
   async getTimesM(formatted) {
     //this.getter(i, index).then(r=>{console.log("agaaaa");res(r)}).catch(s=>{console.log("BAD");rej(s)})
-    console.log(formatted)
+    console.log(formatted);
+    /*
     var p = formatted.map((i, index) => {
       return new Promise((res, rej) => {
-        this.getter( this.state.date.slice(0, 10).replace(/-/g, "-"), index,i.id)
+        this.getter(
+          this.state.date.slice(0, 10).replace(/-/g, "-"),
+          index,
+          i.id
+        )
           .then(e => {
             res(e);
           })
@@ -145,6 +190,10 @@ export class AdminTimeTable extends React.Component {
           });
       });
     });
+    */
+    var cdata=this.state.date.slice(0, 10).replace(/-/g, "-")
+    await new Promise.all(formatted.map((i,index)=>{return new Promise((res,rej)=>{this.getter(cdata,index,i.id).then(r=>{res(r)}).catch(e=>{rej(e)})})})).then(e=>{console.log("ended")}).catch(r=>{throw r})
+    /*
     return new Promise.all(p)
       .then(e => {
         console.log("ended");
@@ -153,8 +202,14 @@ export class AdminTimeTable extends React.Component {
         console.log("AAAAA");
         throw e;
       });
-  }
+      */
+     /*
+      for(var i=0;i<p.length;i++){
+        await this.getter( this.state.date.slice(0, 10).replace(/-/g, "-"),i,formatted[i].id);
+      }
+      */
 
+  }
 
   async initialApiCall() {
     console.log("Start Loading");
@@ -170,45 +225,50 @@ export class AdminTimeTable extends React.Component {
         "Превышен лимит ожидания ответа от сервера",
         [
           {
-            text: "OK",
+            text: "Попробовать снова",
             onPress: () => {
               this.initialApiCall();
             }
           }
         ],
-        { cancelable: true }
+        { cancelable: false }
       );
     });
-    var formatted = docList.rows.row.map(item => {
-      return { id: item.id, name: item.name };
-    });
-    this.answs = new Array(formatted.length);
-    var docData = [];
-    await this.getTimesM(formatted)
-    .then(re => {
-      for (var i = 0; i < formatted.length; i++) {
-        docData.push(this.answs[i])
-      }
-      this.setState({ docList: formatted, docInfo: docData, refreshing: false });
-      this.setState({ loading: false });
-    })
-    .catch(e => {
-      console.log("MAIN ERR:"+e);
-      Alert.alert(
-        "Ошибка",
-        "Ошибка соединения с сервером",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              this.initialApiCall();
-            }
+    if (docList.rows != undefined) {
+      var formatted = docList.rows.row.map(item => {
+        return { id: item.id, name: item.name };
+      });
+      this.answs = new Array(formatted.length);
+      var docData = [];
+      await this.getTimesM(formatted)
+        .then(re => {
+          for (var i = 0; i < formatted.length; i++) {
+            docData.push(this.answs[i]);
           }
-        ],
-        { cancelable: true }
-      );
-    });
-
+          this.setState({
+            docList: formatted,
+            docInfo: docData,
+            refreshing: false
+          });
+          this.setState({ loading: false });
+        })
+        .catch(e => {
+          console.log("MAIN ERR:" + e);
+          Alert.alert(
+            "Ошибка",
+            "Ошибка соединения с сервером",
+            [
+              {
+                text: "Попробовать снова",
+                onPress: () => {
+                }
+              }
+            ],
+            { cancelable: true }
+          );
+          this.initialApiCall();
+        });
+    }
     console.log("Получил все расписания\nТеперь время нормализовать пары");
   }
 
@@ -217,8 +277,9 @@ export class AdminTimeTable extends React.Component {
   };
 
   async componentDidMount() {
+    AppState.addEventListener('change', this._handleAppStateChange);
     var p = await SecureStore.getItemAsync("timeout");
-    this.setState({timeout:Number(p) });
+    this.setState({ timeout: Number(p) });
     this.backHandler = BackHandler.addEventListener(
       "hardwareBackPress",
       this.handleBackPress
@@ -302,10 +363,15 @@ kab - № кабинета
       this.state.url,
       this.state.port,
       this.state.timeout
-    ).catch((e)=>{
+    ).catch(e => {
+      console.log("ОШИБКА");
       var msg = "";
       if (e.includes("Validation constraint violation")) {
         msg = "Неверная норма времени";
+      }
+      if (e.includes('<SOAP-ENV:Detail>')) {
+        var index = e.indexOf('<SOAP-ENV:Detail>');
+        msg = e.substr(index + 17, e.indexOf("</SOAP-ENV:Detail>") - index - 17);
       } else {
         if (e.includes("Нет такого")) {
           msg = "Нет такого № кабинета " + data.kab;
@@ -313,26 +379,39 @@ kab - № кабинета
           if (e.includes("Слишком большое время")) {
             msg =
               "Слишком большое время на прием, так как кто-то уже записан на следующее время, конфликтующее с текущей нормой";
+          } else {
+            if (e.includes("Ф.И.О.")) {
+              msg = "Введите описание!";
+            }
           }
         }
       }
+      console.log("ОШИИИИИБКА");
+
       if (msg === "") msg = "Превышен лимит ожидания от сервера";
       Alert.alert("Ошибка", msg, [{ text: "OK", onPress: () => {} }], {
         cancelable: true
       });
     });
-  
-    if (d.includes("STATE-OK")) {
-      Alert.alert(
-        "Ок",
-        "Успешно изменено, данные обновляются",
-        [{ text: "OK", onPress: () => {      this.setState({ showEditTable: false });
-        this.initialApiCall()} }],
-        { cancelable: true }
-      );
+    if (d != undefined) {
+      if (d.includes("STATE-OK")) {
+        Alert.alert(
+          "Ок",
+          "Успешно изменено, данные обновляются",
+          [
+            {
+              text: "OK",
+              onPress: () => {}
+            }
+          ],
+          { cancelable: true }
+        );
+        this.setState({ showEditTable: false });
+        this.initialApiCall()
+      }
     }
   }
-  
+
   showEditTable(newState) {
     this.setState(newState);
   }
@@ -492,7 +571,7 @@ kab - № кабинета
             alignItems: "center",
             paddingTop: 8,
             zIndex: 200,
-            position: "absolute",
+            position: "absolute"
           }}
         >
           <Spinner color="red" />
@@ -512,7 +591,7 @@ kab - № кабинета
               justifyContent: "center",
               backgroundColor: "#a52b2a",
               shadowOpacity: 0, //for ios
-              borderBottomWidth: 0, //for ios
+              borderBottomWidth: 0 //for ios
             }}
           >
             <Body
@@ -535,7 +614,7 @@ kab - № кабинета
               flex: 1,
               flexDirection: "column",
               justifyContent: "center",
-              backgroundColor:"#F1FFF0"
+              backgroundColor: "#F1FFF0"
             }}
           >
             <Spinner color="red" />
@@ -550,7 +629,10 @@ kab - № кабинета
             style={{
               flexDirection: "row",
               justifyContent: "center",
-              backgroundColor: "#a52b2a"
+              backgroundColor: "#a52b2a",
+              backgroundColor: colors.background,
+              borderBottomWidth: 0,
+              height: 0,
             }}
           >
             <Body
@@ -568,12 +650,15 @@ kab - № кабинета
                 date={this.state.date}
               />
             </Body>
+
           </Header>
           {this.drawEditTable()}
           {this.refreshingSpinner()}
           <FlatList
             data={this.generateTable(this.state.maxDocs)}
             renderItem={({ item }) => item}
+            refreshing={this.state.refresher}
+            onRefresh={()=>{this.onRefresher()}}
             keyExtractor={(item, index) => index}
           />
         </Container>

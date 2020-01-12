@@ -8,18 +8,12 @@ class Network {
 
   static timeout = 16000;
   static getUrl(url, port) {
-    return "http://" + url + ":" + port + "/?wsdl";
+    return "http://" + url + ":" + port;
   }
 
   static async GetDocsAll(token, date, url, port, timeout) {
     //await this.sleep(timeout);
-    var body =
-      '<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><GetDocsAll xmlns="urn:grvssl"><tokenId>' +
-      token +
-      "</tokenId>" +
-      "<datez>" +
-      date +
-      "</datez></GetDocsAll></Body></Envelope>";
+    var body ='<?xml version="1.0" encoding="UTF-8"?>\r\n<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:grvssl" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><SOAP-ENV:Body><ns1:GetDocsAll><tokenId xsi:type="xsd:string">'+token+'</tokenId><datez xsi:type="xsd:string">'+date+'</datez></ns1:GetDocsAll></SOAP-ENV:Body></SOAP-ENV:Envelope>\r\n';
     console.log(body);
     const axios = require("axios");
     return new Promise((resolve, reject) => {
@@ -29,12 +23,11 @@ class Network {
         timeout: 15000, // Wait for 15 seconds
         data: body,
         headers: {
-          "Content-Type": "text/plain",
-          "User-Agent": "PostmanRuntime/7.21.0",
-          Accept: "*/*",
-          "Cache-Control": "no-cache",
+          "User-Agent": "PHP-SOAP/7.0.33-0+deb9u6",
           Host: url + ":" + port,
-          "Accept-Encoding": "gzip, deflate",
+          "Connection":"Keep-Alive",
+          "Content-Type":"text/xml; charset=utf-8",
+          "SOAPAction": "",
           "Content-Length": body.length
         }
       })
@@ -56,15 +49,61 @@ class Network {
 
   static async GetTimesAll(token, id, date, url, port, timeout, tryc=0) {
     //await this.sleep(timeout);
-    console.log("GetDates")
-    var body =
-      '<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><GetTimesAll xmlns="urn:grvssl"><tokenId>' +
-      token +
-      "</tokenId><docId>" +
-      id +
-      "</docId><datez>" +
-      date +
-      "</datez></GetTimesAll></Body></Envelope>";
+    var body ='<?xml version="1.0" encoding="UTF-8"?>\r\n<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:grvssl" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><SOAP-ENV:Body><ns1:GetTimesAll><tokenId xsi:type="xsd:string">'+token+'</tokenId><docId xsi:type="xsd:int">'+id+'</docId><datez xsi:type="xsd:string">'+date+'</datez></ns1:GetTimesAll></SOAP-ENV:Body></SOAP-ENV:Envelope>\r\n';
+    console.log(date)
+    const axios = require("axios");
+    return new Promise((resolve, reject) => {
+      axios({
+        method: "post",
+        url: this.getUrl(url, port),
+        timeout: 5000, // Wait for 5 seconds
+        data: body,
+        headers: {
+          "User-Agent": "PHP-SOAP/7.0.33-0+deb9u6",
+          Host: url + ":" + port,
+          "Connection":"Keep-Alive",
+          "Content-Type":"text/xml; charset=utf-8",
+          "SOAPAction": "",
+          "Content-Length": body.length
+        }
+      })
+        .then(response => {
+          console.log("gotted response")
+          var d = response.data;
+          if(d===undefined|| d===null) reject(new Error("err"))
+          var index = d.indexOf("<rows>");
+          var parsed = d.substr(index, d.indexOf("</rows>") + 7 - index);
+          var xml2js = require("xml2js");
+          var parser = new xml2js.Parser({ explicitArray: false });
+          parser.parseString(parsed, function(err, result) {
+            if(err!=null){
+              console.log(response.data)
+            reject(err)
+            }
+            resolve(result);
+          });
+        })
+        .catch(error => {
+          console.log("ОШИБКА-"+error)
+          if(error.toString().includes("Request failed with status code 400")||error.toString().includes("timeout") ){
+            if(tryc<=3){
+              console.log("Поймал и дал шанс")
+              resolve(this.GetTimesAll(token, id, date, url, port, timeout, tryc+1))
+            } else{
+              reject(error);
+            }
+          } else{
+            reject(error)
+          }
+        });
+    });
+  }
+
+  static async GetDatesAll(token, id, date, url, port, timeout) {
+    //await this.sleep(timeout)await this.sleep(timeout);
+
+  
+    var body ='<?xml version="1.0" encoding="UTF-8"?>\r\n<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:grvssl" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><SOAP-ENV:Body><ns1:GetDatesAll><tokenId xsi:type="xsd:string">'+token+'</tokenId><docId xsi:type="xsd:int">'+id+'</docId><datez xsi:type="xsd:string">'+date+'</datez></ns1:GetDatesAll></SOAP-ENV:Body></SOAP-ENV:Envelope>\r\n';
       console.log(body)
     const axios = require("axios");
     return new Promise((resolve, reject) => {
@@ -74,63 +113,11 @@ class Network {
         timeout: 15000, // Wait for 15 seconds
         data: body,
         headers: {
-          "User-Agent": "PostmanRuntime/7.21.0",
-          Accept: "*/*",
-          "Cache-Control": "no-cache",
+          "User-Agent": "PHP-SOAP/7.0.33-0+deb9u6",
           Host: url + ":" + port,
-          "Accept-Encoding": "gzip, deflate",
-          "Content-Length": body.length
-        }
-      })
-        .then(response => {
-          var d = response.data;
-          var index = d.indexOf("<rows>");
-          var parsed = d.substr(index, d.indexOf("</rows>") + 7 - index);
-          var xml2js = require("xml2js");
-          var parser = new xml2js.Parser({ explicitArray: false });
-          parser.parseString(parsed, function(err, result) {
-            resolve(result);
-          });
-        })
-        .catch(error => {
-          console.log("ОШИБКА-"+error)
-          if(error.toString().includes("Request failed with status code 400")){
-            if(tryc<=3){
-              console.log("Поймал и дал шанс")
-              resolve(this.GetTimesAll(token, id, date, url, port, timeout, tryc+1))
-            } else{
-              reject(error);
-            }
-          }
-        });
-    });
-  }
-
-  static async GetDatesAll(token, id, date, url, port, timeout) {
-    //await this.sleep(timeout)await this.sleep(timeout);
-    var body =
-      '<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><GetDatesAll xmlns="urn:grvssl"><tokenId>' +
-      token +
-      "</tokenId><docId>" +
-      id +
-      "</docId><datez>" +
-      date +
-      "</datez></GetDatesAll></Body></Envelope>";
-    console.log(body);
-    const axios = require("axios");
-    return new Promise((resolve, reject) => {
-      axios({
-        method: "post",
-        url: this.getUrl(url, port),
-        timeout: 15000, // Wait for 15 seconds
-        data: body,
-        headers: {
-          "Content-Type": "text/plain",
-          "User-Agent": "PostmanRuntime/7.21.0",
-          Accept: "*/*",
-          "Cache-Control": "no-cache",
-          Host: url + ":" + port,
-          "Accept-Encoding": "gzip, deflate",
+          "Connection":"Keep-Alive",
+          "Content-Type":"text/xml; charset=utf-8",
+          "SOAPAction": "",
           "Content-Length": body.length
         }
       })
@@ -165,7 +152,7 @@ class Network {
   ) {
     //await this.sleep(timeout);
     var body =
-      '<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><EditGrvData xmlns="urn:grvssl"><tokenId>' +
+      '<?xml version="1.0" encoding="UTF-8"?>\r\n<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><EditGrvData xmlns="urn:grvssl"><tokenId>' +
       token +
       "</tokenId><docId>" +
       id +
@@ -181,7 +168,7 @@ class Network {
       nvr +
       "</nvr><kab>" +
       kab +
-      "</kab></EditGrvData></Body></Envelope>";
+      "</kab></EditGrvData></Body></Envelope>\r\n";
 
     console.log(body);
     const axios = require("axios");
@@ -192,12 +179,11 @@ class Network {
         timeout: 15000, // Wait for 15 seconds
         data: body,
         headers: {
-          "Content-Type": "text/plain",
-          "User-Agent": "PostmanRuntime/7.21.0",
-          Accept: "*/*",
-          "Cache-Control": "no-cache",
+          "User-Agent": "PHP-SOAP/7.0.33-0+deb9u6",
           Host: url + ":" + port,
-          "Accept-Encoding": "gzip, deflate",
+          "Connection":"Keep-Alive",
+          "Content-Type":"text/xml; charset=utf-8",
+          "SOAPAction": "",
           "Content-Length": body.length
         }
       })
@@ -217,7 +203,7 @@ class Network {
   static async DeleteGrvData(token, id, date, time, url, port, timeout) {
     //await this.sleep(timeout);
     var body =
-      '<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><DeleteGrvData xmlns="urn:grvssl"><tokenId>' +
+      '<?xml version="1.0" encoding="UTF-8"?>\r\n<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><DeleteGrvData xmlns="urn:grvssl"><tokenId>' +
       token +
       "</tokenId><docId>" +
       id +
@@ -225,7 +211,7 @@ class Network {
       date +
       "</datez><timez>" +
       time +
-      "</timez></DeleteGrvData></Body></Envelope>";
+      "</timez></DeleteGrvData></Body></Envelope>\r\n";
     console.log(body);
 
     console.log(body);
@@ -237,12 +223,11 @@ class Network {
         timeout: 15000, // Wait for 15 seconds
         data: body,
         headers: {
-          "Content-Type": "text/plain",
-          "User-Agent": "PostmanRuntime/7.21.0",
-          Accept: "*/*",
-          "Cache-Control": "no-cache",
+          "User-Agent": "PHP-SOAP/7.0.33-0+deb9u6",
           Host: url + ":" + port,
-          "Accept-Encoding": "gzip, deflate",
+          "Connection":"Keep-Alive",
+          "Content-Type":"text/xml; charset=utf-8",
+          "SOAPAction": "",
           "Content-Length": body.length
         }
       })
@@ -292,7 +277,7 @@ class Network {
   static async GetGrvData(token, id, date, time, url, port, timeout) {
     //await this.sleep(timeout);
     var body =
-      '<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><GetGrvData xmlns="urn:grvssl"><tokenId>' +
+      '<?xml version="1.0" encoding="UTF-8"?>\r\n<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><GetGrvData xmlns="urn:grvssl"><tokenId>' +
       token +
       "</tokenId><docId>" +
       id +
@@ -300,7 +285,7 @@ class Network {
       date +
       "</datez><timez>" +
       time +
-      "</timez></GetGrvData></Body></Envelope>";
+      "</timez></GetGrvData></Body></Envelope>\r\n";
     console.log(body);
     const axios = require("axios");
     return new Promise((resolve, reject) => {
@@ -310,12 +295,11 @@ class Network {
         timeout: 15000, // Wait for 15 seconds
         data: body,
         headers: {
-          "Content-Type": "text/plain",
-          "User-Agent": "PostmanRuntime/7.21.0",
-          Accept: "*/*",
-          "Cache-Control": "no-cache",
+          "User-Agent": "PHP-SOAP/7.0.33-0+deb9u6",
           Host: url + ":" + port,
-          "Accept-Encoding": "gzip, deflate",
+          "Connection":"Keep-Alive",
+          "Content-Type":"text/xml; charset=utf-8",
+          "SOAPAction": "",
           "Content-Length": body.length
         }
       })

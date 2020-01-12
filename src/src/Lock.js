@@ -45,7 +45,7 @@ export class Lock extends React.Component {
     type: this.props.type,
     truePass: this.props.passCode,
     func: this.props.func,
-    text:"Войдите с помощью отпечатка пальца прикоснувшись к сканнеру"
+    text: "Войдите с помощью отпечатка пальца прикоснувшись к сканнеру"
   };
 
   inputProcessor(v) {
@@ -85,7 +85,7 @@ export class Lock extends React.Component {
           authenticated: true,
           failedCount: 0,
           passCode: "1111",
-          text:"Успех!"
+          text: "Успех!"
         });
         this.state.func();
       } else {
@@ -106,16 +106,11 @@ export class Lock extends React.Component {
       Roboto_medium: require("native-base/Fonts/Roboto_medium.ttf")
     });
     console.log("Auth type" + this.state.type);
-    if (await LocalAuthentication.hasHardwareAsync()) {
-      this.setState({ isOldDevice: false });
-      console.log("STATE:"+this.state.type)
-      if (this.state.type != "password") {
-        this.scanFingerPrint();
-      }
+    console.log("STATE:" + this.state.type);
+    if (this.state.type != "password") {
+      this.scanFingerPrint();
     }
-    console.log(this.state.isOldDevice);
     this.setState({ loading: false });
-    console.log(this.state.type);
   }
 
   render() {
@@ -133,7 +128,7 @@ export class Lock extends React.Component {
                     fontSize: 20,
                     alignSelf: "center",
                     marginBottom: 17,
-                    textAlign:'center'
+                    textAlign: "center"
                   }}
                 >
                   {this.state.text}
@@ -145,7 +140,7 @@ export class Lock extends React.Component {
                   }}
                 >
                   <Image
-                    style={{ width: 128, height: 128, alignSelf:'center' }}
+                    style={{ width: 128, height: 128, alignSelf: "center" }}
                     source={require("../assets/finger.png")}
                   />
                   <View style={{ paddingTop: 10 }}>
