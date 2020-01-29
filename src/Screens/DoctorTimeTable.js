@@ -18,6 +18,9 @@ import { Cell } from "../Components/Cell";
 import { EditTable } from "../Components/EditTable";
 import Network from "../Utils/Networking";
 import * as SecureStore from "expo-secure-store";
+import GestureRecognizer, {swipeDirections} from 'react-native-swipe-gestures';
+import moment from "moment";
+import momentRU from 'moment/locale/ru' 
 export class DoctorTimeTable extends React.Component {
   static navigationOptions = ({ navigation }) => {
     return {
@@ -51,6 +54,7 @@ export class DoctorTimeTable extends React.Component {
         PixelRatio.get()) /
         350
     )
+    
   };
 
   onLayout(e) {
@@ -263,6 +267,7 @@ export class DoctorTimeTable extends React.Component {
 
   dateChangedApiCall(datesl) {
     console.log("ИЗМЕНИЛОСЬ НА" + datesl);
+
     this.setState(
       { date: datesl.slice(0, 10).replace(/-/g, "-"), refreshing: true },
       () => {
@@ -270,9 +275,10 @@ export class DoctorTimeTable extends React.Component {
       }
     );
   }
-
   constructor(props) {
     super(props);
+    moment.updateLocale('ru',momentRU );  
+
   }
   refreshingSpinner() {
     if (this.state.refreshing) {
@@ -295,6 +301,10 @@ export class DoctorTimeTable extends React.Component {
         </View>
       );
     }
+  }
+
+  referer(ref){
+    this.setState({child:ref})
   }
 
   render() {
@@ -356,8 +366,9 @@ export class DoctorTimeTable extends React.Component {
             flexDirection: "row",
             justifyContent: "center",
             backgroundColor: "#a52b2a",
-            shadowOpacity: 0, //for ios
-            borderBottomWidth: 0 //for ios
+            borderBottomWidth: 0,
+            elevation: 0,
+            shadowOpacity: 0,
           }}
         >
           <Body
@@ -368,6 +379,7 @@ export class DoctorTimeTable extends React.Component {
             }}
           >
             <NavigationHeader
+              referer={(ref)=>{this.referer(ref)}}
               apiCall={date => this.dateChangedApiCall(date)}
               navigateToSettings={() =>
                 this.props.navigation.navigate("Settings")
@@ -377,6 +389,7 @@ export class DoctorTimeTable extends React.Component {
             />
           </Body>
         </Header>
+
         <Table
           data={this.state.listOfCells}
           headerData={this.state.dates}
@@ -390,6 +403,8 @@ export class DoctorTimeTable extends React.Component {
           onRefresher={() => {
             this.onRefresher();
           }}
+          nextDate={()=>{console.log("next date");this.state.child.prevDate()}}
+          prevDate={()=>{console.log("prev date"); this.state.child.nextDate()}}
           refreshing={this.state.refresher}
           myorientation={this.state.myorientation}
         ></Table>
@@ -401,8 +416,16 @@ export class DoctorTimeTable extends React.Component {
 //refreshing={this.props.refreshing}
 //onRefresh={()=>{this.props.onRefresher}}
 class Table extends React.Component {
+  weekday = new Array(7);
   constructor(props) {
     super(props);
+    this.weekday[0] = " Вс";
+    this.weekday[1] = " Пн";
+    this.weekday[2] = " Вт";
+    this.weekday[3] = " Ср";
+    this.weekday[4] = " Чт";
+    this.weekday[5] = " Пт";
+    this.weekday[6] = " Сб";
   }
 
   state = {
@@ -416,7 +439,8 @@ class Table extends React.Component {
     doctorId: this.props.doctorId,
     token: this.props.token,
     url: this.props.url,
-    port: this.props.port
+    port: this.props.port,
+    reference:this.props.mref
   };
 
   seEditTable() {
@@ -535,7 +559,7 @@ class Table extends React.Component {
       this.state.token,
       this.state.doctorId,
       data.date.slice(0, 10).replace(/-/g, "-"),
-      data.time,
+      data.deleteTime,
       this.state.url,
       this.state.port,
       this.state.timeout
@@ -630,8 +654,8 @@ class Table extends React.Component {
         numColumns={this.state.numColumns}
         style={{ flex: 1, alignSelf: "stretch", backgroundColor: "#a52b2a" }}
         renderItem={({ item }) => (
-          <Text style={styles.header}>
-            {this.replaceAll(item.key, "-", ".")}
+          <Text style={[styles.header,{backgroundColor:((moment().format('YYYY-MM-DD')===moment(item.key).format('YYYY-MM-DD')))?"#1B73B3":"#a52b2a"}]}>
+            {moment(item.key).format('DD.MM dd').toUpperCase()}
           </Text>
         )}
       />
@@ -670,13 +694,37 @@ class Table extends React.Component {
   componentDidMount() {
     this.setState({ loading: false });
   }
+
+  onSwipeLeft() {
+    console.log('You swiped left!')
+    this.props.prevDate()
+  }
+ 
+  onSwipeRight(gestureState) {
+   console.log('You swiped right!')
+   this.props.nextDate()
+  }
+
   render() {
+    const config = {
+      velocityThreshold: 0.85,
+      directionalOffsetThreshold: 350
+    };
     if (this.state.loading) {
       return <View></View>;
     } else
       return (
         <View style={styles.container}>
           {this.drawEditTable()}
+          <GestureRecognizer
+        onSwipeLeft={()=>this.onSwipeLeft()}
+        onSwipeRight={()=>this.onSwipeRight()}
+        config={config}
+        style={{
+          flex: 1,
+          backgroundColor: this.state.backgroundColor
+        }}
+        >
           <FlatList
             key={this.state.numColumns}
             refreshing={this.props.refreshing}
@@ -738,6 +786,7 @@ class Table extends React.Component {
               }
             }}
           />
+          </GestureRecognizer>
         </View>
       );
   }

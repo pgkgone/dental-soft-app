@@ -81,7 +81,6 @@ class Network {
         }
       })
         .then(response => {
-          console.log("gotted response");
           var d = response.data;
           if (d === undefined || d === null) reject(new Error("err"));
           var index = d.indexOf("<rows>");

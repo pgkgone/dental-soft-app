@@ -15,6 +15,7 @@ import Network from "../Utils/Networking";
 import DeleteIcons from "react-native-vector-icons/Feather";
 import CancelIcons from "react-native-vector-icons/Entypo";
 import * as SecureStore from "expo-secure-store";
+import moment from "moment";
 export class EditTable extends React.Component {
   state = {
     visitNum: this.props.data.prim,
@@ -29,7 +30,9 @@ export class EditTable extends React.Component {
     timeout:50,
     loading: true,
     url: this.props.data.url,
-    port: this.props.data.port
+    port: this.props.data.port,
+    deleteTime:this.props.data.time,
+    isCurrentDay: (moment().format('YYYY-MM-DD')===moment(this.props.data.date).format('YYYY-MM-DD'))
   };
 
   async getData() {
@@ -82,6 +85,9 @@ export class EditTable extends React.Component {
   onChangeCabinet(txt) {
     this.setState({ kab: txt });
   }
+  onChangeTimeS(txt){
+    this.setState({time:txt})
+  }
   render() {
     if (this.state.loading) {
       return <View></View>;
@@ -102,7 +108,7 @@ export class EditTable extends React.Component {
             
               <View
                 style={{
-                  backgroundColor: "#a52a2a",
+                  backgroundColor: (this.state.isCurrentDay)?"#1B73B3":"#a52a2a",
                   color: "white",
                   fontSize: 14,
                   flexDirection: "row",
@@ -171,6 +177,20 @@ export class EditTable extends React.Component {
                 />
               </View>
               <View style={styles.editBoxItemView}>
+                <Text style={styles.editBoxItem}>Время: </Text>
+                <TextInput
+                  style={{
+                    height: 40,
+                    borderBottomWidth: 1,
+                    borderBottomColor: "gray",
+                    fontSize: 16
+                  }}
+                  onChangeText={text => this.onChangeTimeS(text)}
+                  value={this.state.time}
+                />
+              </View>
+
+              <View style={styles.editBoxItemView}>
                 <Text style={styles.editBoxItem}>Норма (мин.): </Text>
                 <TextInput
                 keyboardType={"numeric"}
@@ -215,7 +235,7 @@ export class EditTable extends React.Component {
                     onPress={() => {
                       this.props.saveFun(this.state);
                     }}
-                    style={{ backgroundColor: "#a52a2a" }}
+                    style={{ backgroundColor:(this.state.isCurrentDay)?"#1B73B3":"#a52a2a" }}
                   >
                     <Text style={{ color: "white", padding: 10 }}>
                       Сохранить

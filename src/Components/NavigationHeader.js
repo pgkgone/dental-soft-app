@@ -13,11 +13,14 @@ import SettingsIcon from "react-native-vector-icons/Feather";
 import ArrowIcons from "react-native-vector-icons/AntDesign";
 import * as Font from "expo-font";
 import { Container, Header, Body } from "native-base";
+import moment from "moment";
+import momentRU from 'moment/locale/ru' 
 //нужно указывать callback в this.porps.apiCall(date)
 export class NavigationHeader extends React.Component {
   weekday = new Array(7);
   constructor(props) {
     super(props);
+    moment.updateLocale('ru',momentRU );   
     this.weekday[0] = "(Вс)";
     this.weekday[1] = "(Пн)";
     this.weekday[2] = "(Вт)";
@@ -31,6 +34,8 @@ export class NavigationHeader extends React.Component {
       refreshVar: false
     };
     console.log(this.props.date + "initial date");
+    console.log(this.props.date.substr(0,this.props.date.indexOf("T")))
+    console.log(moment(this.props.date.substr(0,this.props.date.indexOf("T"))).format('DD.MM dd  ',).toUpperCase())
   }
 
   showDateTimePicker = () => {
@@ -72,6 +77,35 @@ export class NavigationHeader extends React.Component {
       this.handleDatePicked(new Date(newDate));
     }
   }
+
+  componentDidMount() {
+    if(this.props.referer!=undefined)
+    {this.props.referer(this)}
+  }
+
+  toNormal(date){
+    console.log("GOT"+date)
+    var date = new Date(date); // Or the date you'd like converted.
+    var isoDate = new Date(
+      date.getTime()
+    ).toISOString();
+    console.log("Cyka"+isoDate)
+    isoDate=isoDate.substr(0,isoDate.indexOf('T'))
+    //console.log(date.substr(0,date.toString().find('T')))
+    var d=isoDate.split('-')
+    return d[2]+"."+d[1]+""+this.weekday[new Date(isoDate).getDay()]+" ";
+  }
+
+  componentDidUpdate(prevProps, prevState, snapshot) {
+    if(prevProps!=this.props && prevProps.referer===undefined){
+      if(this.props.referer!=undefined){
+        this.setState({currentDate:this.props.date})
+        console.log(this.state.currentDate)
+        {this.props.referer(this)}
+      }
+    }
+    }
+
 
   prevDate() {
     var newDate = new Date(this.state.currentDate).setDate(
@@ -149,9 +183,7 @@ export class NavigationHeader extends React.Component {
                     textAlignVertical: "center"
                   }}
                 >
-                  {this.state.currentDate.slice(0, 10).replace(/-/g, ".") +
-                    this.weekday[new Date(this.state.currentDate).getDay()] +
-                    "  "}
+                  {moment(this.state.currentDate.substr(0,this.state.currentDate.indexOf("T"))).format('DD.MM dd  ',).toUpperCase()}
                 </Text>
               </View>
               <View>
