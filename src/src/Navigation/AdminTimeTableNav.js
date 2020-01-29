@@ -14,15 +14,24 @@ const MainNavigator = createStackNavigator(
         },
         AdminTimeTable: 
         {
-            screen: AdminTimeTable
+            screen: AdminTimeTable,
+            navigationOptions: {
+                gesturesEnabled: false,
+            }
         },
         AdminDoctorTimeTable: 
         {
-            screen: AdminDoctorTimeTable
+            screen: AdminDoctorTimeTable,
+            navigationOptions: {
+                gesturesEnabled: false,
+            }
         },
         DoctorTimeTable: 
         {
-            screen: DoctorTimeTable
+            screen: DoctorTimeTable,
+            navigationOptions: {
+                gesturesEnabled: false,
+            }
         },
         Settings:
         {

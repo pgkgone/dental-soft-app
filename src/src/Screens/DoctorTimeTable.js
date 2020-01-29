@@ -18,6 +18,9 @@ import { Cell } from "../Components/Cell";
 import { EditTable } from "../Components/EditTable";
 import Network from "../Utils/Networking";
 import * as SecureStore from "expo-secure-store";
+import GestureRecognizer, {swipeDirections} from 'react-native-swipe-gestures';
+import moment from "moment";
+import momentRU from 'moment/locale/ru' 
 export class DoctorTimeTable extends React.Component {
   static navigationOptions = ({ navigation }) => {
     return {
@@ -31,7 +34,7 @@ export class DoctorTimeTable extends React.Component {
     dates: null,
     myorientation: true,
     listOfCells: null,
-    refresher:false,
+    refresher: false,
     doctorId: this.props.navigation.state.params.data.doctorId, //через пропс обязательно получаем
     date: this.getISODate(),
     timeout: 50,
@@ -51,6 +54,7 @@ export class DoctorTimeTable extends React.Component {
         PixelRatio.get()) /
         350
     )
+    
   };
 
   onLayout(e) {
@@ -58,10 +62,10 @@ export class DoctorTimeTable extends React.Component {
   }
 
   //refresher for FlatList
-  onRefresher(){
-    this.setState({refreshing:true,refresher:true})
-    this.initApiCall()
-    this.setState({refresher:false})
+  onRefresher() {
+    this.setState({ refreshing: true, refresher: true });
+    this.initApiCall();
+    this.setState({ refresher: false });
   }
 
   getISODate() {
@@ -81,15 +85,17 @@ export class DoctorTimeTable extends React.Component {
     return true;
   };
 
-  _handleAppStateChange = (nextAppState) => {
-    console.log(nextAppState)
-    if(nextAppState==='active' && !this.state.refreshing){
-      this.setState({refreshing:true},()=>{this.initApiCall()})
+  _handleAppStateChange = nextAppState => {
+    console.log(nextAppState);
+    if (nextAppState === "active" && !this.state.refreshing) {
+      this.setState({ refreshing: true }, () => {
+        this.initApiCall();
+      });
     }
   };
 
   async componentDidMount() {
-    AppState.addEventListener('change', this._handleAppStateChange);
+    AppState.addEventListener("change", this._handleAppStateChange);
     var p = await SecureStore.getItemAsync("timeout");
     this.backHandler = BackHandler.addEventListener(
       "hardwareBackPress",
@@ -261,6 +267,7 @@ export class DoctorTimeTable extends React.Component {
 
   dateChangedApiCall(datesl) {
     console.log("ИЗМЕНИЛОСЬ НА" + datesl);
+
     this.setState(
       { date: datesl.slice(0, 10).replace(/-/g, "-"), refreshing: true },
       () => {
@@ -268,9 +275,10 @@ export class DoctorTimeTable extends React.Component {
       }
     );
   }
-
   constructor(props) {
     super(props);
+    moment.updateLocale('ru',momentRU );  
+
   }
   refreshingSpinner() {
     if (this.state.refreshing) {
@@ -293,6 +301,10 @@ export class DoctorTimeTable extends React.Component {
         </View>
       );
     }
+  }
+
+  referer(ref){
+    this.setState({child:ref})
   }
 
   render() {
@@ -367,6 +379,7 @@ export class DoctorTimeTable extends React.Component {
             }}
           >
             <NavigationHeader
+              referer={(ref)=>{this.referer(ref)}}
               apiCall={date => this.dateChangedApiCall(date)}
               navigateToSettings={() =>
                 this.props.navigation.navigate("Settings")
@@ -376,6 +389,7 @@ export class DoctorTimeTable extends React.Component {
             />
           </Body>
         </Header>
+
         <Table
           data={this.state.listOfCells}
           headerData={this.state.dates}
@@ -386,7 +400,11 @@ export class DoctorTimeTable extends React.Component {
           update={() => {
             this.initApiCall();
           }}
-          onRefresher={()=>{this.onRefresher()}}
+          onRefresher={() => {
+            this.onRefresher();
+          }}
+          nextDate={()=>{console.log("next date");this.state.child.prevDate()}}
+          prevDate={()=>{console.log("prev date"); this.state.child.nextDate()}}
           refreshing={this.state.refresher}
           myorientation={this.state.myorientation}
         ></Table>
@@ -398,8 +416,16 @@ export class DoctorTimeTable extends React.Component {
 //refreshing={this.props.refreshing}
 //onRefresh={()=>{this.props.onRefresher}}
 class Table extends React.Component {
+  weekday = new Array(7);
   constructor(props) {
     super(props);
+    this.weekday[0] = " Вс";
+    this.weekday[1] = " Пн";
+    this.weekday[2] = " Вт";
+    this.weekday[3] = " Ср";
+    this.weekday[4] = " Чт";
+    this.weekday[5] = " Пт";
+    this.weekday[6] = " Сб";
   }
 
   state = {
@@ -413,7 +439,8 @@ class Table extends React.Component {
     doctorId: this.props.doctorId,
     token: this.props.token,
     url: this.props.url,
-    port: this.props.port
+    port: this.props.port,
+    reference:this.props.mref
   };
 
   seEditTable() {
@@ -455,9 +482,12 @@ class Table extends React.Component {
       if (e.includes("Validation constraint violation")) {
         msg = "Неверная норма времени";
       }
-      if (e.includes('<SOAP-ENV:Detail>')) {
-        var index = e.indexOf('<SOAP-ENV:Detail>');
-        msg = e.substr(index + 17, e.indexOf("</SOAP-ENV:Detail>") - index - 17);
+      if (e.includes("<SOAP-ENV:Detail>")) {
+        var index = e.indexOf("<SOAP-ENV:Detail>");
+        msg = e.substr(
+          index + 17,
+          e.indexOf("</SOAP-ENV:Detail>") - index - 17
+        );
       } else {
         if (e.includes("Нет такого")) {
           msg = "Нет такого № кабинета " + data.kab;
@@ -481,23 +511,45 @@ class Table extends React.Component {
     });
     if (d != undefined) {
       if (d.includes("STATE-OK")) {
-        Alert.alert(
-          "Ок",
-          "Успешно изменено, данные обновляются",
-          [
-            {
-              text: "OK",
-              onPress: () => {}
-            }
-          ],
-          { cancelable: true }
-        );
-        this.setState({ showEditTable: false });
-        this.props.update();
+
+        if (Platform.OS === "ios") {
+          this.setState({ showEditTable: false,refreshing:true },()=>{this.iosFunc()});
+        } else {
+          Alert.alert(
+            "Ок",
+            "Успешно изменено, данные обновляются",
+            [
+              {
+                text: "OK",
+                onPress: () => {}
+              }
+            ],
+            { cancelable: true }
+          );
+          this.setState({ showEditTable: false,refreshing:true });
+          this.props.update();
+        }
       }
     }
   }
 
+  async iosFunc(){
+    console.log("ios")
+    await new Promise(resolve => setTimeout(resolve, 850));
+    Alert.alert(
+      "Ок",
+      "Успешно изменено, данные обновляются",
+      [
+        {
+          text: "OK",
+          onPress: () => {}
+        }
+      ],
+      { cancelable: true }
+    );
+    console.log("UPDATED")
+    this.props.update();
+  }
   showEditTable(newState) {
     this.setState(newState);
   }
@@ -507,7 +559,7 @@ class Table extends React.Component {
       this.state.token,
       this.state.doctorId,
       data.date.slice(0, 10).replace(/-/g, "-"),
-      data.time,
+      data.deleteTime,
       this.state.url,
       this.state.port,
       this.state.timeout
@@ -602,8 +654,8 @@ class Table extends React.Component {
         numColumns={this.state.numColumns}
         style={{ flex: 1, alignSelf: "stretch", backgroundColor: "#a52b2a" }}
         renderItem={({ item }) => (
-          <Text style={styles.header}>
-            {this.replaceAll(item.key, "-", ".")}
+          <Text style={[styles.header,{backgroundColor:((moment().format('YYYY-MM-DD')===moment(item.key).format('YYYY-MM-DD')))?"#1B73B3":"#a52b2a"}]}>
+            {moment(item.key).format('DD.MM dd').toUpperCase()}
           </Text>
         )}
       />
@@ -642,17 +694,43 @@ class Table extends React.Component {
   componentDidMount() {
     this.setState({ loading: false });
   }
+
+  onSwipeLeft() {
+    console.log('You swiped left!')
+    this.props.prevDate()
+  }
+ 
+  onSwipeRight(gestureState) {
+   console.log('You swiped right!')
+   this.props.nextDate()
+  }
+
   render() {
+    const config = {
+      velocityThreshold: 0.85,
+      directionalOffsetThreshold: 350
+    };
     if (this.state.loading) {
       return <View></View>;
     } else
       return (
         <View style={styles.container}>
           {this.drawEditTable()}
+          <GestureRecognizer
+        onSwipeLeft={()=>this.onSwipeLeft()}
+        onSwipeRight={()=>this.onSwipeRight()}
+        config={config}
+        style={{
+          flex: 1,
+          backgroundColor: this.state.backgroundColor
+        }}
+        >
           <FlatList
             key={this.state.numColumns}
             refreshing={this.props.refreshing}
-            onRefresh={()=>{this.props.onRefresher()}}
+            onRefresh={() => {
+              this.props.onRefresher();
+            }}
             data={this.TableFormatter(
               this.state.data.dates.slice(0, this.state.numColumns)
             )}
@@ -708,6 +786,7 @@ class Table extends React.Component {
               }
             }}
           />
+          </GestureRecognizer>
         </View>
       );
   }

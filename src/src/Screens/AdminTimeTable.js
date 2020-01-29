@@ -11,7 +11,8 @@ import {
   PixelRatio,
   Alert,
   BackHandler,
-  AppState
+  AppState,
+  Platform
 } from "react-native";
 import { Container, Header, Body, Spinner } from "native-base";
 import DateTimePicker from "react-native-modal-datetime-picker";
@@ -22,9 +23,19 @@ import { NavigationHeader } from "../Components/NavigationHeader";
 import { Cell } from "../Components/Cell";
 import { EditTable } from "../Components/EditTable";
 import * as SecureStore from "expo-secure-store";
+import moment from "moment";
+import momentRU from 'moment/locale/ru' 
+import GestureRecognizer, {
+  swipeDirections
+} from "react-native-swipe-gestures";
 export class AdminTimeTable extends React.Component {
   constructor(props) {
     super(props);
+    moment.updateLocale('ru',momentRU );   
+  }
+
+  static sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   //устанавливаем stacknavigation header
@@ -43,60 +54,75 @@ export class AdminTimeTable extends React.Component {
     date: this.getISODate(),
     docList: null,
     docInfo: null,
-    refresher:false,
+    refresher: false,
+    notLoad: false,
+    isCurrDay: true,
     showEditTable: false,
     timeout: 50,
     screenWidth: Math.round(Dimensions.get("window").width) * PixelRatio.get(),
     maxDocs: Math.round(
       (Math.round(Dimensions.get("window").width) * PixelRatio.get()) / 350
-    ),
-    screens: new Map([
-      [
-        Math.round(
-          (Math.round(Dimensions.get("window").width) * PixelRatio.get()) / 350
-        ),
-        null
-      ],
-      [
-        Math.round(
-          (Math.round(Dimensions.get("window").height) * PixelRatio.get()) / 350
-        ),
-        null
-      ]
-    ])
+    )
   };
 
-  _handleAppStateChange = (nextAppState) => {
-    console.log(nextAppState)
-    if(nextAppState==='active' && !this.state.refreshing){
-      this.setState({refreshing:true},()=>{this.initialApiCall()})
+  _handleAppStateChange = nextAppState => {
+    console.log(nextAppState);
+    if (nextAppState === "active" && !this.state.refreshing) {
+      this.setState({ refreshing: true }, () => {
+        this.initialApiCall();
+      });
     }
   };
 
-  onRefresher(){
-    this.setState({refreshing:true,refresher:true})
-    this.initialApiCall()
-    this.setState({refresher:false})
+  onRefresher() {
+    this.setState({ refreshing: true, refresher: true });
+    this.initialApiCall();
+    this.setState({ refresher: false });
   }
 
-
   onLayout(e) {
-    console.log("here");
     var screenWidth =
       Math.round(Dimensions.get("window").width) * PixelRatio.get();
     var maxDocs = Math.round(screenWidth / 350);
     console.log(maxDocs);
-    this.setState({ maxDocs: maxDocs },()=>{this.generateTable()});
+    this.setState({ maxDocs: maxDocs }, () => {
+      this.generateTable();
+    });
   }
 
   dateChangedApiCall(datesl) {
+  
     console.log("ИЗМЕНИЛОСЬ НА " + datesl);
-    this.setState(
-      { date: datesl.slice(0, 10).replace(/-/g, "-"), refreshing: true },
-      () => {
-        this.initialApiCall();
-      }
-    );
+    console.log(datesl) 
+    console.log(moment().format('DD.MM dd').toUpperCase())
+    console.log(moment().format('YYYY-MM-DD'))
+    if (
+      (moment().format('YYYY-MM-DD')===moment(datesl.substr(0,datesl.indexOf("T"))).format('YYYY-MM-DD'))
+    ) {
+      this.setState(
+        {
+          date: datesl.slice(0, 10).replace(/-/g, "-"),
+          refreshing: true,
+          isCurrDay: true,
+          notLoad:false
+        },
+        () => {
+          this.initialApiCall();
+        }
+      );
+    } else {
+      this.setState(
+        {
+          date: datesl.slice(0, 10).replace(/-/g, "-"),
+          refreshing: true,
+          isCurrDay: false,
+          notLoad:false
+        },
+        () => {
+          this.initialApiCall();
+        }
+      );
+    }
   }
 
   getISODate() {
@@ -119,33 +145,31 @@ export class AdminTimeTable extends React.Component {
       console.log(e);
       throw e;
     });
-
-    if(pa.rows.row[0]===undefined){
-      form=[]
-      var p
+    if (pa.rows.row[0] === undefined) {
+      form = [];
+      var p;
       if (Object.entries(pa.rows.row.id).length === 0) {
         p = {
           visitNum: "", //Цель визита
           time: pa.rows.row.name,
-          doctorId: this.state.doctorId,
+          doctorId: forDoc,
           date: forUrl,
-          name: "" //Имя пациента
+          prim: "" //Имя пациента
         };
       } else {
         p = {
           visitNum: pa.rows.row.id.split(",")[1], //Цель визита
           time: pa.rows.row.name,
-          doctorId: this.state.doctorId,
+          doctorId: forDoc,
           date: forUrl,
-          name: pa.rows.row.id.split(", ")[0] //Имя пациента
+          prim: pa.rows.row.id.split(", ")[0] //Имя пациента
         };
       }
-      form.push(p)
+      form.push(p);
       this.answs[ind] = form;
       return true;
     }
 
-    
     var form = pa.rows.row.map(item => {
       var p = null;
       if (Object.entries(item.id).length === 0) {
@@ -173,7 +197,6 @@ export class AdminTimeTable extends React.Component {
 
   async getTimesM(formatted) {
     //this.getter(i, index).then(r=>{console.log("agaaaa");res(r)}).catch(s=>{console.log("BAD");rej(s)})
-    console.log(formatted);
     /*
     var p = formatted.map((i, index) => {
       return new Promise((res, rej) => {
@@ -191,8 +214,26 @@ export class AdminTimeTable extends React.Component {
       });
     });
     */
-    var cdata=this.state.date.slice(0, 10).replace(/-/g, "-")
-    await new Promise.all(formatted.map((i,index)=>{return new Promise((res,rej)=>{this.getter(cdata,index,i.id).then(r=>{res(r)}).catch(e=>{rej(e)})})})).then(e=>{console.log("ended")}).catch(r=>{throw r})
+    var cdata = this.state.date.slice(0, 10).replace(/-/g, "-");
+    await new Promise.all(
+      formatted.map((i, index) => {
+        return new Promise((res, rej) => {
+          this.getter(cdata, index, i.id)
+            .then(r => {
+              res(r);
+            })
+            .catch(e => {
+              rej(e);
+            });
+        });
+      })
+    )
+      .then(e => {
+        //console.log("ended");
+      })
+      .catch(r => {
+        throw r;
+      });
     /*
     return new Promise.all(p)
       .then(e => {
@@ -203,12 +244,11 @@ export class AdminTimeTable extends React.Component {
         throw e;
       });
       */
-     /*
+    /*
       for(var i=0;i<p.length;i++){
         await this.getter( this.state.date.slice(0, 10).replace(/-/g, "-"),i,formatted[i].id);
       }
       */
-
   }
 
   async initialApiCall() {
@@ -235,41 +275,57 @@ export class AdminTimeTable extends React.Component {
       );
     });
     if (docList.rows != undefined) {
-      var formatted = docList.rows.row.map(item => {
-        return { id: item.id, name: item.name };
-      });
-      this.answs = new Array(formatted.length);
-      var docData = [];
-      await this.getTimesM(formatted)
-        .then(re => {
-          for (var i = 0; i < formatted.length; i++) {
-            docData.push(this.answs[i]);
-          }
-          this.setState({
-            docList: formatted,
-            docInfo: docData,
-            refreshing: false
+      var formatted;
+      if (
+        docList.rows.row[0] === undefined &&
+        docList.rows.row.name === "empty"
+      ) {
+        //console.log("поймал");
+        this.setState({ notLoad: true, loading: false, refreshing: false });
+      } else {
+        if (docList.rows.row[0] === undefined) {
+          formatted = new Array(1);
+          formatted[0] = {
+            id: docList.rows.row.id,
+            name: docList.rows.row.name
+          };
+        } else {
+          formatted = docList.rows.row.map(item => {
+            return { id: item.id, name: item.name };
           });
-          this.setState({ loading: false });
-        })
-        .catch(e => {
-          console.log("MAIN ERR:" + e);
-          Alert.alert(
-            "Ошибка",
-            "Ошибка соединения с сервером",
-            [
-              {
-                text: "Попробовать снова",
-                onPress: () => {
+        }
+        this.answs = new Array(formatted.length);
+        var docData = [];
+        await this.getTimesM(formatted)
+          .then(re => {
+            for (var i = 0; i < formatted.length; i++) {
+              docData.push(this.answs[i]);
+            }
+            this.setState({
+              docList: formatted,
+              docInfo: docData,
+              refreshing: false
+            });
+            this.setState({ loading: false });
+          })
+          .catch(e => {
+            console.log("MAIN ERR:" + e);
+            Alert.alert(
+              "Ошибка",
+              "Ошибка соединения с сервером",
+              [
+                {
+                  text: "Попробовать снова",
+                  onPress: () => {}
                 }
-              }
-            ],
-            { cancelable: true }
-          );
-          this.initialApiCall();
-        });
+              ],
+              { cancelable: true }
+            );
+            this.initialApiCall();
+          });
+      }
     }
-    console.log("Получил все расписания\nТеперь время нормализовать пары");
+    //console.log("Получил все расписания\nТеперь время нормализовать пары");
   }
 
   handleBackPress = () => {
@@ -277,7 +333,7 @@ export class AdminTimeTable extends React.Component {
   };
 
   async componentDidMount() {
-    AppState.addEventListener('change', this._handleAppStateChange);
+    AppState.addEventListener("change", this._handleAppStateChange);
     var p = await SecureStore.getItemAsync("timeout");
     this.setState({ timeout: Number(p) });
     this.backHandler = BackHandler.addEventListener(
@@ -369,9 +425,12 @@ kab - № кабинета
       if (e.includes("Validation constraint violation")) {
         msg = "Неверная норма времени";
       }
-      if (e.includes('<SOAP-ENV:Detail>')) {
-        var index = e.indexOf('<SOAP-ENV:Detail>');
-        msg = e.substr(index + 17, e.indexOf("</SOAP-ENV:Detail>") - index - 17);
+      if (e.includes("<SOAP-ENV:Detail>")) {
+        var index = e.indexOf("<SOAP-ENV:Detail>");
+        msg = e.substr(
+          index + 17,
+          e.indexOf("</SOAP-ENV:Detail>") - index - 17
+        );
       } else {
         if (e.includes("Нет такого")) {
           msg = "Нет такого № кабинета " + data.kab;
@@ -395,23 +454,45 @@ kab - № кабинета
     });
     if (d != undefined) {
       if (d.includes("STATE-OK")) {
-        Alert.alert(
-          "Ок",
-          "Успешно изменено, данные обновляются",
-          [
-            {
-              text: "OK",
-              onPress: () => {}
-            }
-          ],
-          { cancelable: true }
-        );
-        this.setState({ showEditTable: false });
-        this.initialApiCall()
+        if (Platform.OS === "ios") {
+          this.setState({ showEditTable: false, refreshing: true }, () => {
+            this.iosFunc();
+          });
+        } else {
+          Alert.alert(
+            "Ок",
+            "Успешно изменено, данные обновляются",
+            [
+              {
+                text: "OK",
+                onPress: () => {}
+              }
+            ],
+            { cancelable: true }
+          );
+          this.setState({ showEditTable: false, refreshing: true });
+          this.initialApiCall();
+        }
       }
     }
   }
 
+  async iosFunc() {
+    console.log("ios");
+    await new Promise(resolve => setTimeout(resolve, 850));
+    Alert.alert(
+      "Ок",
+      "Успешно изменено, данные обновляются",
+      [
+        {
+          text: "OK",
+          onPress: () => {}
+        }
+      ],
+      { cancelable: true }
+    );
+    this.initialApiCall();
+  }
   showEditTable(newState) {
     this.setState(newState);
   }
@@ -421,7 +502,7 @@ kab - № кабинета
       this.state.token,
       data.doctorId,
       data.date.slice(0, 10).replace(/-/g, "-"),
-      data.time,
+      data.deleteTime,
       this.state.url,
       this.state.port,
       this.state.timeout
@@ -458,7 +539,10 @@ kab - № кабинета
       }
     }
   }
-
+  toFio(data) {
+    var d = data.split(" ");
+    return d[0] + " " + d[1][0] + "." + d[2][0];
+  }
   generateHeader(data) {
     return (
       <FlatList
@@ -466,9 +550,13 @@ kab - № кабинета
         key={data.length}
         numColumns={data.length}
         scrollEnabled={false}
-        style={{ flex: 1, textAlign: "center", backgroundColor: "#a52b2a" }}
+        style={{
+          flex: 1,
+          textAlign: "center",
+          backgroundColor: this.state.isCurrDay ? "#1B73B3" : "#a52b2a"
+        }}
         renderItem={({ item }) => (
-          <Text style={styles.header}>{item.name}</Text>
+          <Text style={styles.header}>{this.toFio(item.name)}</Text>
         )}
       />
     );
@@ -477,7 +565,19 @@ kab - № кабинета
   generateTable(maxDocs) {
     if (maxDocs == null) maxDocs = this.state.maxDocs;
     var result = [];
-    for (var i = 0; i < this.state.docList.length; i += this.state.maxDocs) {
+    var i=0
+    const Device = require('react-native-device-detection');
+    while(i<this.state.docList.length){
+      console.log(this.state.docList.length-i)
+  
+      if(this.state.docList.length-(i+maxDocs)===2 && Device.isTablet){
+        maxDocs+=2
+      } else{
+        if(this.state.docList.length-(i+maxDocs)===1){
+          maxDocs+=1
+        }
+      }
+
       var partDoctor = this.state.docList.slice(i, i + maxDocs);
       var partInfo = this.state.docInfo.slice(i, i + maxDocs);
       var data = {};
@@ -491,8 +591,16 @@ kab - № кабинета
       data.dates = dates;
       var r = this.TableFormatter(data);
       result.push(this.generateHeader(partDoctor));
-
+      const config = {
+        velocityThreshold: 0.85,
+        directionalOffsetThreshold: 350
+      };
       result.push(
+        <GestureRecognizer
+        onSwipeLeft={() => this.onSwipeLeft()}
+        onSwipeRight={() => this.onSwipeRight()}
+        config={config}
+      >
         <FlatList
           data={r}
           keyExtractor={item => item.key}
@@ -549,10 +657,9 @@ kab - № кабинета
             }
           }}
         />
+        </GestureRecognizer>
       );
-    }
-    if (this.state.screens.get(this.state.maxDocs) == null) {
-      this.state.screens.set(this.state.maxDocs, result);
+      i+=maxDocs
     }
     return result;
   }
@@ -580,16 +687,36 @@ kab - № кабинета
     }
   }
 
+  referer(ref) {
+    this.setState({ child: ref });
+    console.log("зареферил");
+  }
+
+  onSwipeLeft() {
+    console.log("You swiped left!");
+    this.state.child.nextDate();
+  }
+
+  onSwipeRight(gestureState) {
+    console.log("You swiped right!");
+    this.state.child.prevDate();
+  }
+
   render() {
+    const config = {
+      velocityThreshold: 0.4,
+      directionalOffsetThreshold: 100
+    };
+
     if (this.state.loading) {
       return (
         <Container>
           <Header
-            androidStatusBarColor="#a52b2a"
+            androidStatusBarColor={this.state.isCurrDay ? "#1B73B3" : "#a52b2a"}
             style={{
               flexDirection: "row",
               justifyContent: "center",
-              backgroundColor: "#a52b2a",
+              backgroundColor: this.state.isCurrDay ? "#1B73B3" : "#a52b2a",
               shadowOpacity: 0, //for ios
               borderBottomWidth: 0 //for ios
             }}
@@ -598,7 +725,7 @@ kab - № кабинета
               style={{
                 flexDirection: "row",
                 justifyContent: "center",
-                backgroundColor: "#a52b2a"
+                backgroundColor: this.state.isCurrDay ? "#1B73B3" : "#a52b2a"
               }}
             >
               <NavigationHeader
@@ -621,28 +748,30 @@ kab - № кабинета
           </View>
         </Container>
       );
-    } else
+    } else if (this.state.notLoad) {
       return (
-        <Container onLayout={this.onLayout.bind(this)}>
+        <Container>
           <Header
-            androidStatusBarColor="#a52b2a"
+            androidStatusBarColor={this.state.isCurrDay ? "#1B73B3" : "#a52b2a"}
             style={{
               flexDirection: "row",
               justifyContent: "center",
-              backgroundColor: "#a52b2a",
-              backgroundColor: colors.background,
-              borderBottomWidth: 0,
-              height: 0,
+              backgroundColor: this.state.isCurrDay ? "#1B73B3" : "#a52b2a",
+              shadowOpacity: 0, //for ios
+              borderBottomWidth: 0 //for ios
             }}
           >
             <Body
               style={{
                 flexDirection: "row",
                 justifyContent: "center",
-                backgroundColor: "#a52b2a"
+                backgroundColor: this.state.isCurrDay ? "#1B73B3" : "#a52b2a"
               }}
             >
               <NavigationHeader
+                referer={ref => {
+                  this.referer(ref);
+                }}
                 apiCall={date => this.dateChangedApiCall(date)}
                 navigateToSettings={() =>
                   this.props.navigation.navigate("Settings")
@@ -650,17 +779,72 @@ kab - № кабинета
                 date={this.state.date}
               />
             </Body>
-
+          </Header>
+          <View
+            style={{
+              flex: 1,
+              flexDirection: "column",
+              justifyContent: "center",
+              backgroundColor: "#F1FFF0"
+            }}
+          >
+            <GestureRecognizer
+              onSwipeLeft={() => this.onSwipeLeft()}
+              onSwipeRight={() => this.onSwipeRight()}
+              config={config}
+            >
+              <Text style={{ fontSize: 30, textAlign: "center", color: "red" }}>
+                Нет врачей на текущую дату
+              </Text>
+            </GestureRecognizer>
+          </View>
+        </Container>
+      );
+    } else
+      return (
+        <Container
+          onLayout={this.onLayout.bind(this)}
+          style={{ backgroundColor: "#F1FFF0" }}
+        >
+          <Header
+            androidStatusBarColor={this.state.isCurrDay ? "#1B73B3" : "#a52b2a"}
+            style={{
+              flexDirection: "row",
+              justifyContent: "center",
+              backgroundColor: this.state.isCurrDay ? "#1B73B3" : "#a52b2a",
+              borderBottomWidth: 0
+            }}
+          >
+            <Body
+              style={{
+                flexDirection: "row",
+                justifyContent: "center",
+                backgroundColor: this.state.isCurrDay ? "#1B73B3" : "#a52b2a"
+              }}
+            >
+              <NavigationHeader
+                referer={ref => {
+                  this.referer(ref);
+                }}
+                apiCall={date => this.dateChangedApiCall(date)}
+                navigateToSettings={() =>
+                  this.props.navigation.navigate("Settings")
+                }
+                date={this.state.date}
+              />
+            </Body>
           </Header>
           {this.drawEditTable()}
           {this.refreshingSpinner()}
-          <FlatList
-            data={this.generateTable(this.state.maxDocs)}
-            renderItem={({ item }) => item}
-            refreshing={this.state.refresher}
-            onRefresh={()=>{this.onRefresher()}}
-            keyExtractor={(item, index) => index}
-          />
+            <FlatList
+              data={this.generateTable(this.state.maxDocs)}
+              renderItem={({ item }) => item}
+              refreshing={this.state.refresher}
+              onRefresh={() => {
+                this.onRefresher();
+              }}
+              keyExtractor={(item, index) => index}
+            />
         </Container>
       );
   }
@@ -685,7 +869,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     flex: 0.5,
     padding: 10,
-    fontSize: 18,
+    fontSize: 15.5,
     height: 44
   }
 });

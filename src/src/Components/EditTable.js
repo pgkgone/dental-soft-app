@@ -29,7 +29,9 @@ export class EditTable extends React.Component {
     timeout:50,
     loading: true,
     url: this.props.data.url,
-    port: this.props.data.port
+    port: this.props.data.port,
+    deleteTime:this.props.data.time,
+    isCurrentDay:(new Date().getDate() === new Date(this.props.data.date).getDate() && new Date().getMonth() === new Date(this.props.data.date).getMonth())
   };
 
   async getData() {
@@ -82,6 +84,9 @@ export class EditTable extends React.Component {
   onChangeCabinet(txt) {
     this.setState({ kab: txt });
   }
+  onChangeTimeS(txt){
+    this.setState({time:txt})
+  }
   render() {
     if (this.state.loading) {
       return <View></View>;
@@ -102,7 +107,7 @@ export class EditTable extends React.Component {
             
               <View
                 style={{
-                  backgroundColor: "#a52a2a",
+                  backgroundColor: (this.state.isCurrentDay)?"#1B73B3":"#a52a2a",
                   color: "white",
                   fontSize: 14,
                   flexDirection: "row",
@@ -171,6 +176,20 @@ export class EditTable extends React.Component {
                 />
               </View>
               <View style={styles.editBoxItemView}>
+                <Text style={styles.editBoxItem}>Время: </Text>
+                <TextInput
+                  style={{
+                    height: 40,
+                    borderBottomWidth: 1,
+                    borderBottomColor: "gray",
+                    fontSize: 16
+                  }}
+                  onChangeText={text => this.onChangeTimeS(text)}
+                  value={this.state.time}
+                />
+              </View>
+
+              <View style={styles.editBoxItemView}>
                 <Text style={styles.editBoxItem}>Норма (мин.): </Text>
                 <TextInput
                 keyboardType={"numeric"}
@@ -215,7 +234,7 @@ export class EditTable extends React.Component {
                     onPress={() => {
                       this.props.saveFun(this.state);
                     }}
-                    style={{ backgroundColor: "#a52a2a" }}
+                    style={{ backgroundColor:(this.state.isCurrentDay)?"#1B73B3":"#a52a2a" }}
                   >
                     <Text style={{ color: "white", padding: 10 }}>
                       Сохранить
